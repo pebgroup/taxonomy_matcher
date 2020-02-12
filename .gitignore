@@ -1,0 +1,10 @@
+*.rds
+*.csv
+*.Rproj.user/
+*.Rhistory
+*.RData
+*.Ruserdata
+*.zip
+*.tar.gz
+*.txt
+

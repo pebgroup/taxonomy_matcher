@@ -1,0 +1,50 @@
+<eml:eml xmlns:eml="eml://ecoinformatics.org/eml-2.1.1"
+         xmlns:dc="http://purl.org/dc/terms/"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="eml://ecoinformatics.org/eml-2.1.1 http://rs.gbif.org/schema/eml-gbif-profile/1.0.2/eml.xsd"
+         packageId="null/v0" system="http://gbif.org" scope="system"
+         xml:lang="en">
+
+<dataset>
+  <title xml:lang="en">World Checklist of Selected Plant Families</title>
+<creator>
+    <individualName>
+      <surName></surName>
+    </individualName>
+    <onlineUrl>http://apps.kew.org/wcsp/</onlineUrl>
+</creator>
+<metadataProvider>
+    <individualName>
+      <surName></surName>
+    </individualName>
+</metadataProvider>
+<pubDate>
+      	2019-11-06
+</pubDate>
+<language>en</language>
+<abstract>
+  <para>See &lt;a href=&quot;http://apps.kew.org/wcsp/about.do&quot;&gt;http://apps.kew.org/wcsp/about.do&lt;/a&gt;</para>
+</abstract>
+      <keywordSet>
+            <keyword>WCSP</keyword>
+            <keyword>World Checklist of Selected Plant families</keyword>
+            <keyword>Royal Botanic Gardens, Kew</keyword>
+        <keywordThesaurus> </keywordThesaurus>
+      </keywordSet>
+  <contact>
+    <individualName>
+      <surName></surName>
+    </individualName>
+  </contact>
+</dataset>
+  <additionalMetadata>
+    <metadata>
+      <gbif>
+          <dateStamp>2019-11-06T08:30:10.764+00:00</dateStamp>
+          <hierarchyLevel>dataset</hierarchyLevel>
+            <citation>The International Plant Names Index and World Checklist of Selected Plant Families 2019. Published on the Internet at http://www.ipni.org and http://apps.kew.org/wcsp/</citation>
+          <resourceLogoUrl>http://www.ipni.org/images/logo/ipni_logo.svg</resourceLogoUrl>
+      </gbif>
+    </metadata>
+  </additionalMetadata>
+</eml:eml>
