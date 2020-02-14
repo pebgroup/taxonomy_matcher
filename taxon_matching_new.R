@@ -6,6 +6,7 @@
   library(tidyverse)
   library(BIEN)
   
+
 # Get data
 
 # ## BIEN
@@ -60,11 +61,6 @@
 
 wc_all <- readRDS("database/wcp_dec_19.rds")
 
-#head(wc_all)
-#table(wc_all$taxon_rank, useNA="ifany")
-#View(wc_all[wc_all$infraspecific_rank=="nothosubsp.",])
-#View(unique(wc_all[,c("infraspecific_rank", "taxon_rank")]))
-
 
 ####################################################################
 ## extract tax info happens in common_format_creator_vectorized.R ##
@@ -72,14 +68,13 @@ wc_all <- readRDS("database/wcp_dec_19.rds")
 
 
 bien_input <- readRDS("database/bien_input_vectorized2.rds")
-
+    
 ## Cleanup
 # remove usable == no
 bien_input <- bien_input[-which(bien_input$usable=="no"),]
 
 
 # RENAMING BIEN
-table(bien_input$taxon_rank)
 
 # straighten formats
 bien_input$taxon_rank[which(bien_input$taxon_rank=="[unranked]")] <- "unranked"
@@ -102,27 +97,34 @@ wc_all$tax_comb <- gsub(",", "", wc_all$tax_comb, fixed=TRUE)
 empty_ranks <- which(wc_all$tax_comb=="")
 wc_all$tax_comb[empty_ranks] <- as.character(wc_all$taxon_rank[empty_ranks])
 wc_all$tax_comb <- gsub("Species", "species", wc_all$tax_comb)
-#wc_all$tax_comb[which(wc_all$tax_comb=="")] <- NA
+wc_all$tax_comb[which(wc_all$tax_comb=="")] <- NA
 
-sort(table(wc_all$tax_comb), useNA="ifany")
-sort(table(bien_input$taxon_rank), useNA="ifany")
+# fix hybrid notation
+wc_all$genus_hybrid <- as.character(wc_all$genus_hybrid)
+empty_ranks <- which(wc_all$genus_hybrid=="")
+wc_all$genus_hybrid[empty_ranks] <- NA
 
-cbind(unique(bien_input$taxon_rank), unique(bien_input$taxon_rank) %in% wc_all$tax_comb)
+wc_all$species_hybrid <- as.character(wc_all$species_hybrid)
+empty_ranks <- which(wc_all$species_hybrid=="")
+wc_all$species_hybrid[empty_ranks] <- NA
+
+wc_all$genus_hybrid[which(!is.na(wc_all$genus_hybrid))] <- "x"
+wc_all$species_hybrid[which(!is.na(wc_all$species_hybrid))] <- "x"
 
 
 
 
-## Stuff that needs to be there
-# no genus matches:
-View(bien_input[is.na(bien_input$genus),])
-# no species matches:
-View(bien_input[is.na(bien_input$species),])
-# no family matches:
-View(bien_input[is.na(bien_input$family),])
-# no authors
-View(bien_input[is.na(bien_input$author),])
-table(bien_input$split_length[is.na(bien_input$author)])
-table(bien_input$taxon_rank[is.na(bien_input$author)], useNA="ifany")
+## Some checks on completeness
+# # no genus matches:
+# View(bien_input[is.na(bien_input$genus),])
+# # no species matches:
+# View(bien_input[is.na(bien_input$species),])
+# # no family matches:
+# View(bien_input[is.na(bien_input$family),])
+# # no authors
+# View(bien_input[is.na(bien_input$author),])
+# table(bien_input$split_length[is.na(bien_input$author)])
+# table(bien_input$taxon_rank[is.na(bien_input$author)], useNA="ifany")
 
 library(VIM)
 aggr_plot <- aggr(bien_input[,c("family", "author", "genus", "species", "taxon_rank")],
@@ -135,7 +137,14 @@ aggr_plot <- aggr(bien_input[,c("family", "author", "genus", "species", "taxon_r
 
 
 
-# MATCH #
+
+
+
+
+
+# MATCHING ##########################
+
+## preparation
 wc_all_sub <- wc_all[,c("tax_comb", "family", "genus", "genus_hybrid", "species",
                         "species_hybrid", "infraspecies", "taxon_authors", "accepted_plant_name_id")]
 names(wc_all_sub) <- c("taxon_rank", "family", "genus", "genus_hybrid", "species", 
@@ -145,91 +154,231 @@ wc_all_sub <- unique(wc_all_sub)
 
 str(wc_all_sub)
 str(bien_input)
-
 wc_all_sub[,1:ncol(wc_all_sub)] <- lapply(wc_all_sub[,1:ncol(wc_all_sub)], as.character)
-bien_input[,1:2] <- lapply(bien_input[,1:2], as.character)
+bien_input[,1:3] <- lapply(bien_input[,1:3], as.character)
 
-# strict match 
+
+# # exclude families from BIEN not represented in WCSP?
+# fam_in_wcp <- unique(bien_input$family[bien_input$family %in% wc_all$family])
+# bien_input <- bien_input[bien_input$family %in% fam_in_wcp,]
+
+# exclude Bryophyta
+bry <- read.csv("database/bryophyta.csv")
+bryos <- as.character(bry[,1])
+bryos <- gsub(" ", "", bryos)
+bien_input <- bien_input[!bien_input$family %in% bryos,]
+
+
+
+##### STRICT MATCHING, no author #####
 
 res <- merge(bien_input, wc_all_sub, all.x=TRUE,
              by=c("taxon_rank", "family", "genus", "genus_hybrid",
-                  "species", "species_hybrid", "infra_name", "author"))
+                  "species", "species_hybrid", "infra_name"))
+
 res$match_type <- NA
 res <- unique(res)
 res$match_type[which(!is.na(res$accepted_plant_name_id))] <- "strict match"
 table(res$match_type, useNA = "ifany") / nrow(res)
 
-multimatch_strict_id <- res$id[which(duplicated(res$id))]
-View(res[res$id %in% multimatch_strict_id,])
-table(res[res$id %in% multimatch_strict_id,"family"])
-
-## remove the NAs in matched
+## get species ID with multiple matches
+multimatch_strict_id <- unique(res$id[which(duplicated(res$id))])
+### remove those with NAs
 res <- res[-which(res$id %in% multimatch_strict_id & is.na(res$match_type)),]
-sort(table(res[res$id %in% multimatch_strict_id,"family"]))
+multimatch_strict_id <- unique(res$id[which(duplicated(res$id))])
+
+done <- res[!res$id %in% multimatch_strict_id & !is.na(res$accepted_plant_name_id), c("id", "accepted_plant_name_id", "match_type")]
+
+# setup for next level matching
+no_match <- res[is.na(res$accepted_plant_name_id),]
+mm <- res[res$id %in% multimatch_strict_id,]
+
+# check if there are no IDs intersecting between dataframes
+any(no_match$id %in% done$id)
+any(mm$id %in% done$id)
 
 
 
-# strict match without author name
-
-res2 <- merge(bien_input, wc_all_sub, all.x=TRUE, 
-             by=c("taxon_rank", "family", "genus", "genus_hybrid",
-                  "species", "species_hybrid", "infra_name"))
-res2 <- unique(res2)
-res2$match_type <- NA
-res2$match_type[which(!is.na(res2$accepted_plant_name_id))] <- "no_author_match"
-table(res2$match_type, useNA = "ifany") / nrow(res2)
-multimatch_strict_id_no_author <- res$id[which(duplicated(res$id))]
-## remove the NAs in matched
-res2 <- res2[-which(res2$id %in% multimatch_strict_id_no_author & is.na(res2$match_type)),]
 
 
-## merging different match types into one DF
+###### MULTIMATCHES #####
 
-res3 <- merge(res[,c("id", "accepted_plant_name_id", "match_type")], 
-              res2[,c("id", "accepted_plant_name_id", "match_type")],
-              all.x = TRUE, by="id")
-res3$accepted_plant_name_id.x[which(is.na(res3$accepted_plant_name_id.x))] <- res3$accepted_plant_name_id.y[which(is.na(res3$accepted_plant_name_id.x))]
-res3$match_type.x[which(is.na(res3$match_type.x))] <- res3$match_type.y[which(is.na(res3$match_type.x))]
+# make author names easier:
+## some authors names differ by spaces only: remove all spaces from author names
+mm$author.x <- gsub(" ", "", mm$author.x)
+mm$author.y <- gsub(" ", "", mm$author.y)
 
-res3 <- res3[,c("id", "accepted_plant_name_id.x", "match_type.x")]
-names(res3) <- c("id", "accepted_id", "match_type")
-res3 <- unique(res3)
+## assign matching authors status
+mm$match_type[which(mm$author.x == mm$author.y)] <- "matching authors"
+mm$match_type[which(mm$author.x != mm$author.y)] <- "no matching authors"
+### those with one author missing, therefore no comparisson possible, remain "strict matches". however all of them are here because of duplicated, they should be irrelevant
 
-View(res3)
-table(is.na(res3$accepted_id))/nrow(res3)
-which(duplicated(res3$id))
+# now loop through taxon IDs and check (ca 30 seconds)
+IDs <- unique(mm$id)
+one_match <- c()
+more_match <- c()
+no_match <- c()
+for(i in 1:length(IDs)){
+  temp <- mm[mm$id==IDs[i],]
+  if(length(which(temp$match_type=="matching authors"))==1){
+    one_match <- c(one_match, IDs[i])
+  }
+  if(length(which(temp$match_type=="matching authors"))>1){
+    more_match <- c(more_match, IDs[i])
+  }
+  if(length(which(temp$match_type=="matching authors"))==0){
+    no_match <- c(no_match, IDs[i])
+  }
+  if(!i%%100)cat(i,"\r")
+}
+# move one match ones to done df and remove from multimatches
+temp <- mm[mm$id %in% one_match & mm$match_type=="matching authors",]
+done <- rbind(done, temp[, c("id", "accepted_plant_name_id", "match_type")])
 
+unresolved_mm <- mm[!mm$id %in% temp$id,]
 
-# strict match without taxon rank and author
-## uncludes undefinded taxon rank
-temp <- res3[is.na(res3$accepted_id),]
-
-res4 <- merge(bien_input[bien_input$id %in% temp$id,], wc_all_sub, all.x=TRUE, 
-              by=c("family", "genus", "genus_hybrid",
-                   "species", "species_hybrid", "infra_name"))
-res4 <- unique(res4[,c("id", "accepted_plant_name_id")])
-res4$match_type <- NA
-res4$match_type[which(!is.na(res4$accepted_plant_name_id))] <- "no_author_no_tax_rank"
-table(is.na(res4$accepted_plant_name_id))
-
-names(res4) <- c("id", "accepted_id", "match_type")
-res4 <- unique(res4)
-
-fin <- rbind(res3[!is.na(res3$accepted_id),], res4)
-table(fin$match_type, useNA = "ifany") / nrow(fin)
-
-
-# What are the 17% that are hard to match? Moss and stuff?
-bien_input_fin <- merge(bien_input, fin, all.x=TRUE, by="id")
-
+length(unique(unresolved_mm$id))
 par(mar = c(7, 4, 2, 1))
-barplot(tail(sort(table(bien_input_fin$family[is.na(bien_input_fin$match_type)])), 30),
+barplot(tail(sort(table(unresolved_mm$family)), 30),
         las=2, ylab="Taxa", cex.names = 0.8)
 dev.off()
 
 
 
+
+###### NO STRICT MATCHES #####
+
+## no family, but authors
+no_match <- res[is.na(res$accepted_plant_name_id),]
+no_match$author <- no_match$author.x
+no_match <- no_match[,!names(no_match) %in% c("author.x", "author.y", "accepted_plant_name_id")]
+
+
+res2 <- merge(no_match, wc_all_sub, all.x=TRUE, 
+              by=c("taxon_rank", "genus", "genus_hybrid",
+                   "species", "species_hybrid", "infra_name", "author"))
+res2$match_type <- NA
+res2$match_type[which(!is.na(res2$accepted_plant_name_id))] <- "strict match no family"
+
+## get species ID with multiple matches
+multimatch_strict_id <- unique(res2$id[which(duplicated(res2$id))])
+res2_sub <- res2[!res2$id %in% multimatch_strict_id,]
+res2_sub <- res2_sub[!is.na(res2_sub$match_type),]
+
+done <- rbind(done, res2_sub[, c("id", "accepted_plant_name_id", "match_type")])
+
+# put multimatches in unresolved multimatches
+res2_mm <- res2[res2$id %in% multimatch_strict_id,]
+res2_mm <- res2_mm[!is.na(res2_mm$accepted_plant_name_id),]
+
+# keep them in separate dataframes for now to save the contradicting family information
+
+
+
+
+## infraspecific does not match, if infra == species name → match on species level
+nms <- no_match[which(no_match$infra_name == no_match$species),]
+## avoid doube assignment, exclude all taxa that have been matched via no family match
+nms <- nms[!nms$id %in% done$id,]
+
+res3 <- merge(nms, wc_all_sub, all.x=TRUE, 
+              by=c("family", "genus", "genus_hybrid",
+                   "species", "species_hybrid", "author"))
+res3$match_type[which(!is.na(res3$accepted_plant_name_id))] <- "no infra (same same)"
+
+## get species ID with multiple matches
+multimatch_strict_id <- unique(res3$id[which(duplicated(res3$id))])
+res3_sub <- res3[!res3$id %in% multimatch_strict_id,]
+res3_sub <- res3_sub[!is.na(res3_sub$accepted_plant_name_id),]
+
+done <- rbind(done, res3_sub[, c("id", "accepted_plant_name_id", "match_type")])
+
+# put multimatches in unresolved multimatches
+res3_mm <- res3[res3$id %in% multimatch_strict_id,]
+res3_mm <- res3_mm[!is.na(res3_mm$accepted_plant_name_id),]
+
+# keep them in separate dataframes for now to save the contradicting family information
+## unresolved matches are following dataframes: unresolved_mm, res2_mm, res3_mm
+
+
+any(duplicated(done$id))
+# NA lines keep being introduced
+done <- done[!is.na(done$match_type),]
+
+
+######## SUMMARY ########
+bien_output <- merge(bien_input, done, all.x=TRUE)
+
+unsolved <- rbind(unresolved_mm[,c("id", "accepted_plant_name_id", "match_type")], res2_mm[,c("id", "accepted_plant_name_id", "match_type")])
+unsolved <- rbind(unsolved, res3_mm[,c("id", "accepted_plant_name_id", "match_type")])
+unsolved$match_type <- "multimatches"
+
+any(unsolved$id %in% done$id)
+
+bien_output$match_type[which(bien_output$id %in% unsolved$id)] <- "multimatch"
+
+table(bien_output$match_type, useNA = "ifany")/nrow(bien_output)
+
+
+
+#which species are unmatched?
+table(bien_output$family[bien_output$match_type %in% c("multimatch")], useNA = "ifany")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+     
+     
 # TRASH
+
+# 
+# m_authors <- which(mm$author.x == mm$author.y)
+# mm$match_type[m_authors] <- "matching authors"
+# matching_authors <- mm[mm$match_type=="matching authors",]
+# 
+# any(duplicated(matching_authors$id)) # careful, more multmatches ahead...
+# multi_IDs <- matching_authors$id[which(duplicated(matching_authors$id))]
+# 
+# ## store single matching author and remove them from mm to the done df
+# done <- rbind(done, matching_authors[!matching_authors$id %in% multi_IDs, 
+#                                      c("id", "accepted_plant_name_id", "match_type")])
+# 
+# ok we want to keep multi_IDs and no matches
+# matching_authors[matching_authors$id %in% multi_IDs]
+# # the rest
+# 
+# mm <- mm[-which(!mm$id %in% matching_authors[!matching_authors$id %in% multi_IDs),]
+#                 
+#                 
+                
+                # multimatches take 2: modify author names
+                ## some authors names differ by spaces only: remove all spaces from author names
+                # mm$author_simp <- gsub(" ", "", mm$author.x)
+                # mm$author_simp.y <- gsub(" ", "", mm$author.y)
+                # 
+                # m_authors <- which(mm$author_simp == mm$author_simp.y)
+                # mm$match_type[m_authors] <- "matching authors_simp"
+                # m_author_id <- mm$id[m_authors]
+                # 
+                # ## take those who have a matching author and remove them from mm to the done df
+                # done <- rbind(done, mm[m_authors, c("id", "accepted_plant_name_id", "match_type")])
+                # mm <- mm[-which(mm$id %in% m_author_id),]
+
+
+
+
+
 # # Tax compare
 # ## step 1: accepted name matching
 # table(as.character(wc_all$accepted_plant_name_id)==as.character(wc_all$plant_name_id))
