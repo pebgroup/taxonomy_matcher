@@ -253,6 +253,7 @@ done <- rbind(done, temp[, c("id", "accepted_plant_name_id", "match_type")])
 
 unresolved_mm <- mm[!mm$id %in% temp$id,]
 wcp_conflicts <- unresolved_mm[unresolved_mm$id %in% more_match,]
+saveRDS(wcp_conflicts, file="wcp_conflicts.rds")
 length(more_match)
 
 length(unique(unresolved_mm$id))
@@ -262,6 +263,8 @@ barplot(tail(sort(table(unresolved_mm$family)), 30),
 barplot(tail(sort(table(wcp_conflicts$family)), 40),
         las=2, ylab="Taxa", cex.names = 0.8)
 dev.off()
+
+View(wc_all[wc_all$plant_name_id %in% wcp_conflicts$accepted_plant_name_id,])
 
 
 
@@ -327,7 +330,7 @@ done <- done[!is.na(done$match_type),]
 
 
 ######## SUMMARY ########
-bien_output <- merge(bien_input, done, all.x=TRUE)
+fin <- merge(bien_input, done, all.x=TRUE)
 
 unsolved <- rbind(unresolved_mm[,c("id", "accepted_plant_name_id", "match_type")], res2_mm[,c("id", "accepted_plant_name_id", "match_type")])
 unsolved <- rbind(unsolved, res3_mm[,c("id", "accepted_plant_name_id", "match_type")])
@@ -335,26 +338,55 @@ unsolved$match_type <- "multimatches"
 
 any(unsolved$id %in% done$id)
 
-bien_output$match_type[which(bien_output$id %in% unsolved$id)] <- "multimatch"
+fin$match_type[which(fin$id %in% unsolved$id)] <- "multimatch"
 
-table(bien_output$match_type, useNA = "ifany")/nrow(bien_output)
+table(fin$match_type, useNA = "ifany")/nrow(fin)
 
-
+saveRDS(fin, file="fin.rds")
   
 #which species are unmatched?
-table(bien_output$family[bien_output$match_type %in% c("multimatch")], useNA = "ifany")
+table(fin$family[fin$match_type %in% c("multimatch")], useNA = "ifany")
 
-table(bien_output$taxon_rank[is.na(bien_output$match_type)])
-
-
+table(fin$taxon_rank[is.na(fin$match_type)])
 
 
 
 
 
 
+# SPECIES LEVEL MATCHING
+## subset wcsp to species occurring in BIEN 
+ids <- unique(fin$accepted_plant_name_id)
+wc_sub <- wc_all[wc_all$plant_name_id %in% ids,]
 
+## subset to those with taxon rank < species
+table(wc_sub$tax_comb, useNA="ifany")
+spec_match <- wc_sub[!wc_sub$tax_comb %in% c("species", "Genus"),]
 
+wc_species_level <- wc_all[wc_all$tax_comb %in% c("species", "Genus") & wc_all$taxon_status=="Accepted",]
+
+wc_match <- merge(spec_match[,c("plant_name_id", "species", "genus")],
+                  wc_species_level[,c("accepted_plant_name_id", "species", "genus")],
+                  by=c("species", "genus"),
+                  all.x=TRUE)
+
+nrow(wc_match)-nrow(spec_match)
+
+wc_match$elevated_to_species_id <- wc_match$accepted_plant_name_id
+
+## get species ID with multiple matches
+multimatch_id <- unique(wc_match$plant_name_id[which(duplicated(wc_match$plant_name_id))])
+wc_mms <- wc_match[wc_match$plant_name_id %in% multimatch_id,]
+
+wc_match_sub <- wc_match[!wc_match$plant_name_id %in% multimatch_id,]
+wc_match_sub <- wc_match_sub[!is.na(wc_match_sub$accepted_plant_name_id),]
+
+#add to fin
+fin <- merge(fin, wc_match_sub[,c("plant_name_id", "elevated_to_species_id")],
+              by.x="accepted_plant_name_id",
+              by.y="plant_name_id", all.x=TRUE)
+
+table(is.na(fin$elevated_to_species_id), useNA="ifany")
 
 
 
