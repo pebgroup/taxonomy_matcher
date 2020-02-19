@@ -223,6 +223,8 @@ all(unique(c(mm$id, no_match$id, done$id)) %in% bien_input$id)
 # simplify author names: remove all spaces from author names
 mm$author.x <- gsub(" ", "", mm$author.x)
 mm$author.y <- gsub(" ", "", mm$author.y)
+# simplify author names: remove all dots from author names
+
 
 ## assign matching authors status
 mm$match_type[which(mm$author.x == mm$author.y)] <- "matching authors"

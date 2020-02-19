@@ -8,4 +8,6 @@
 *.tar.gz
 *.txt
 .Rproj.user
-BIENdownload_4.R
+shapefile/
+bien_analysis/
+old/
