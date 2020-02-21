@@ -1,4 +1,4 @@
-# builds a common format to feed into the  taxonomy matcher
+# builds a common format based on the BIEN data to feed into the taxonomy matcher
 
 # Get data
 
@@ -7,7 +7,7 @@
 if(getwd()=="/data_vol/melanie/BIEN_download"){
   bien <- read.csv(file="all_bien_occurrences_7cols_rm_na.csv")
 }else{
-  chunk_size <- 2000000 # choose the best size for you
+  chunk_size <- 20000 # choose the best size for you
   bien <- read.csv(file="database/all_bien_occurrences_7cols_rm_na.csv",nrows=chunk_size)
 }
 
@@ -16,8 +16,7 @@ bien <- bien[!abs(bien$latitude)>90,] # remove species with impossible coordinat
 bien <- bien[!abs(bien$longitude)>180,] # remove species with impossible coordinates
 
 
-# unique the species - time to subset
-## create a unique taxon ID that contains all possible information:
+# create unique taxon ID that contains all possible information:
 bien$taxon_author_ID <- paste(bien$scrubbed_taxon_name_no_author, bien$scrubbed_author)
 bien_sub <- bien[!duplicated(bien[,"taxon_author_ID"]),]
 
