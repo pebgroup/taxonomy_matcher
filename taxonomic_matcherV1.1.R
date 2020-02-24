@@ -36,8 +36,8 @@ wc_all$genus_hybrid <- as.character(wc_all$genus_hybrid)
 wc_all$species_hybrid <- as.character(wc_all$species_hybrid)
 # empty_ranks <- which(wc_all$species_hybrid=="")
 # wc_all$species_hybrid[empty_ranks] <- NA
-wc_all$genus_hybrid[which(!is.na(wc_all$genus_hybrid))] <- "x"
-wc_all$species_hybrid[which(!is.na(wc_all$species_hybrid))] <- "x"
+wc_all$genus_hybrid[!is.na(wc_all$genus_hybrid)] <- "x"
+wc_all$species_hybrid[!is.na(wc_all$species_hybrid)] <- "x"
 
 
 #subset the dataset with key columns
@@ -66,8 +66,8 @@ if(DB.name=="NCBI"){
   #cleaning
   dataset$infraspecific_rank <- gsub("\\.|,", "", dataset$infraspecific_rank)
   dataset[dataset==""]<-NA
-  dataset$genus_hybrid[which(!is.na(dataset$genus_hybrid))] <- "x"
-  dataset$species_hybrid[which(!is.na(dataset$species_hybrid))] <- "x"
+  dataset$genus_hybrid[!is.na(dataset$genus_hybrid)] <- "x"
+  dataset$species_hybrid[!is.na(dataset$species_hybrid)] <- "x"
   
   #reorder, maybe not neccesary
   dataset <- dataset %>% select(infraspecific_rank, order, family, genus, genus_hybrid, species, species_hybrid, infraspecies, taxon_authority, taxon_rank, ncbi_id) %>% unique()
@@ -372,7 +372,7 @@ res <- left_join(dataset, wc_all_sub, all.x=TRUE,
 # res.tmp <- inner_join(dataset, wc_all_sub, all.x=TRUE,
 #                   by=c("taxon_rank", "family", "genus", "genus_hybrid",
 #                        "species", "species_hybrid", "infra_name"))
-res.tmp <- res %>% select(-author.x, -author.y) %>% unique() %>% mutate(match_type=ifelse(is.na(res.tmp$accepted_plant_name_id), NA, "strict match"))
+res.tmp <- res %>% select(-author.x, -author.y) %>% unique() %>% mutate(match_type=ifelse(is.na(accepted_plant_name_id), NA, "strict match"))
 
 #duplicates after removing author.x and author.y
 # dupl.no.author <- res %>% select(-author.x, -author.y) %>% duplicated()
@@ -479,7 +479,7 @@ mm_results <- multi_match_checker(multimatch_strict_id, mm)
 # unresolved_mm <- mm_results[[5]]
 # unresolved_mm <- mm[!(mm$id %in% resolved_mm$id),]
 
-wcp_conflicts1 <- mm_results[[5]] %>% filter(id %in% mm_results$more_match)
+wcp_conflicts1 <- mm_results$un_resolved_mm %>% filter(id %in% mm_results$more_match)
 
 #output some summary reports
 
@@ -505,7 +505,7 @@ if(!dir.exists("results")){
 # View(wc_all[wc_all$plant_name_id %in% wcp_conflicts$accepted_plant_name_id,])
 
 #update done data set with resoved entries
-done2 <- rbind(done, mm_results[[4]] %>% select(id, accepted_plant_name_id, match_type))
+done2 <- rbind(done, mm_results$resolved_mm %>% select(id, accepted_plant_name_id, match_type))
 
 # done2 <- unique(done2)
 
@@ -536,7 +536,7 @@ res2_mm <- res2 %>% filter(id %in% multimatch_strict_id & !is.na(accepted_plant_
 
 mm_results2 <- multi_match_checker(multimatch_strict_id, res2_mm)
 
-done4 <- rbind(done3, mm_results2[[4]] %>% select(id, accepted_plant_name_id, match_type))
+done4 <- rbind(done3, mm_results2$resolved_mm %>% select(id, accepted_plant_name_id, match_type))
 
 
 
@@ -582,12 +582,13 @@ if(any(duplicated(done6$id))){
   done6 <- done6 %>% filter(!(id %in% dupl.id))
 }
 
-
+write.csv(done6, paste0("./results/wcsp_",DB.name," _matching_list_done6.csv", sep=""), row.names = FALSE, quote=FALSE)
 
 ######## SUMMARY ########
 fin <- left_join(dataset, done6, by="id", all.x=TRUE)
 
 unsolved <- bind_rows(mm_results$un_resolved_mm, mm_results2$un_resolved_mm, mm_results3$un_resolved_mm)
+saveRDS(unsolved, file="./results/unsolved.rds")
 
 if(any(fin$id %in% unsolved$id)){
   fin$match_type[fin$id %in% unsolved$id] <- "multimatch"
