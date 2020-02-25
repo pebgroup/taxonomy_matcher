@@ -594,7 +594,21 @@ if(any(fin$id %in% unsolved$id)){
   fin$match_type[fin$id %in% unsolved$id] <- "multimatch"
 }
 
-table(fin$match_type, useNA = "ifany")/nrow(fin)
+# summarize the match overview
+
+table.sum <- as.data.frame(round(table(fin$match_type, useNA = "ifany")/nrow(fin)*100, 2))
+match_lables <- c(as.character(table.sum$Var1[!is.na(table.sum$Var1)]), "NA")
+
+# Plot pie chart to overview the match status.
+pdf(paste0("./results/wcsp_", DB.name, "_match_percentage.pdf", sep=""), width = 7, height = 5)
+
+
+pie(table.sum$Freq, labels = unlist(lapply(table.sum$Freq,function(x) paste0(x,"%", sep=""))), main = paste0("Overview WCSP vs. ", DB.name, " taxonomy match", sep=""), col = rainbow(length(table.sum$Freq)), cex=0.5)
+legend(1,-0.1, bty="n", bg="n", match_lables, cex = 0.5,
+       fill = rainbow(length(table.sum$Freq)))
+
+# Save the file.
+dev.off()
 
 saveRDS(fin, file="./results/fin.rds")
   
@@ -640,25 +654,3 @@ table(fin$taxon_rank[is.na(fin$match_type)])
 # 
 # table(is.na(fin$elevated_to_species_id), useNA="ifany")
 # 
-
-#no match means
-# > zero_match[1:3]
-# [1] "1000417" "1000420" "1001170"
-# > temp <- mm[mm$id=="1001170",]
-# > temp
-# taxon_rank        order       family     genus genus_hybrid    species species_hybrid infra_name author.x
-# 11       <NA> Malpighiales Hypericaceae Hypericum         <NA> silenoides           <NA>       <NA>     <NA>
-#   12       <NA> Malpighiales Hypericaceae Hypericum         <NA> silenoides           <NA>       <NA>     <NA>
-#   Trank.ncbi.full      id taxon_status author.y accepted_plant_name_id match_type
-# 11         species 1001170     Accepted     Juss             516649-wcs       <NA>
-#   12         species 1001170   Misapplied    Kunth             516782-wcs       <NA>
-#   > grep("516782-wcs", res$accepted_plant_name_id)
-# [1] 94843 94948
-# > res[c("94843", "94948"),]
-# taxon_rank        order       family     genus genus_hybrid      species species_hybrid infra_name author.x
-# 94843       <NA> Malpighiales Hypericaceae Hypericum         <NA> thesiifolium           <NA>       <NA>     <NA>
-#   94948       <NA> Malpighiales Hypericaceae Hypericum         <NA>   silenoides           <NA>       <NA>     <NA>
-#   Trank.ncbi.full      id taxon_status author.y accepted_plant_name_id
-# 94843         species 1137036     Accepted    Kunth             516782-wcs
-# 94948         species 1001170   Misapplied    Kunth             516782-wcs
-# > 
