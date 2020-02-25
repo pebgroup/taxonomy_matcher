@@ -485,22 +485,22 @@ wcp_conflicts1 <- mm_results$un_resolved_mm %>% filter(id %in% mm_results$more_m
 
 if(!dir.exists("results")){
   dir.creat("results")
+}
   write.csv(wcp_conflicts1, "./results/wcp_conflicts1.csv", row.names = FALSE, quote=FALSE)
   # saveRDS(wcp_conflicts, file=paste0("./results/wcp_conflicts_", dataset, ".rds", sep=""))
   
-  pdf(paste0("./results/wcp_unresolved_conflicts_", dataset, ".pdf", sep=""))
+  pdf(paste0("./results/wcp_unresolved_conflicts_", DB.name, ".pdf", sep=""))
   par(mfrow=c(2,1), mar = c(7, 4, 2, 1))
-  barplot(rev(tail(sort(table(unresolved_mm$family)), 30)),
+  barplot(rev(tail(sort(table(mm_results$un_resolved_mm$family)), 30)),
           las=2, ylab="Taxa", cex.axis=0.65, cex.names = 0.8)
   title(main = "Famies with the most unresolved names")
   
-  barplot(rev(tail(sort(table(wcp_conflicts$family)), 40)),
+  barplot(rev(tail(sort(table(wcp_conflicts1$family)), 40)),
           las=2, ylab="Taxa", cex.names = 0.8)
   title(main = "Families with the most conflict names")
   
   dev.off()
   
-}
 
 # View(wc_all[wc_all$plant_name_id %in% wcp_conflicts$accepted_plant_name_id,])
 
@@ -564,15 +564,15 @@ res3_mm <- res3 %>% filter(id %in% multimatch_strict_id & !is.na(accepted_plant_
 
 mm_results3 <- multi_match_checker(multimatch_strict_id, res3_mm)
 
-if(any(duplicated(mm_results3[[4]]$id))){
-  dupl.id <- mm_results3[[4]]$id[duplicated(mm_results3[[4]]$id)]
-  mm_results3[[4]] <- mm_results3[[4]] %>% filter(!(id %in% dupl.id))
-  wcp_conflicts2 <- mm_results3[[4]] %>% filter(id %in% dupl.id)
+if(any(duplicated(mm_results3$resolved_mm$id))){
+  dupl.id <- mm_results3$resolved_mm$id[duplicated(mm_results3$resolved_mm$id)]
+  mm_results3$resolved_mm <- mm_results3$resolved_mm %>% filter(!(id %in% dupl.id))
+  wcp_conflicts2 <- mm_results3$resolved_mm %>% filter(id %in% dupl.id)
   write.csv(wcp_conflicts2, "./results/wcp_conflicts2.csv", row.names = FALSE, quote=FALSE)
 }
 
 # update the done list with the largest appendix #
-done6 <- rbind(done5, mm_results3[[4]] %>% select(id, accepted_plant_name_id, match_type))
+done6 <- rbind(done5, mm_results3$resolved_mm %>% select(id, accepted_plant_name_id, match_type))
 
 #final check
 done6 <- done6 %>% filter(!is.na(match_type) | !is.na(accepted_plant_name_id) | is.na(id)) %>% unique()
