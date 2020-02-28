@@ -485,22 +485,22 @@ wcp_conflicts1 <- mm_results$un_resolved_mm %>% filter(id %in% mm_results$more_m
 
 if(!dir.exists("results")){
   dir.creat("results")
+}
   write.csv(wcp_conflicts1, "./results/wcp_conflicts1.csv", row.names = FALSE, quote=FALSE)
   # saveRDS(wcp_conflicts, file=paste0("./results/wcp_conflicts_", dataset, ".rds", sep=""))
   
-  pdf(paste0("./results/wcp_unresolved_conflicts_", dataset, ".pdf", sep=""))
+  pdf(paste0("./results/wcp_unresolved_conflicts_", DB.name, ".pdf", sep=""))
   par(mfrow=c(2,1), mar = c(7, 4, 2, 1))
-  barplot(rev(tail(sort(table(unresolved_mm$family)), 30)),
+  barplot(rev(tail(sort(table(mm_results$un_resolved_mm$family)), 30)),
           las=2, ylab="Taxa", cex.axis=0.65, cex.names = 0.8)
   title(main = "Famies with the most unresolved names")
   
-  barplot(rev(tail(sort(table(wcp_conflicts$family)), 40)),
+  barplot(rev(tail(sort(table(wcp_conflicts1$family)), 40)),
           las=2, ylab="Taxa", cex.names = 0.8)
   title(main = "Families with the most conflict names")
   
   dev.off()
   
-}
 
 # View(wc_all[wc_all$plant_name_id %in% wcp_conflicts$accepted_plant_name_id,])
 
@@ -564,15 +564,15 @@ res3_mm <- res3 %>% filter(id %in% multimatch_strict_id & !is.na(accepted_plant_
 
 mm_results3 <- multi_match_checker(multimatch_strict_id, res3_mm)
 
-if(any(duplicated(mm_results3[[4]]$id))){
-  dupl.id <- mm_results3[[4]]$id[duplicated(mm_results3[[4]]$id)]
-  mm_results3[[4]] <- mm_results3[[4]] %>% filter(!(id %in% dupl.id))
-  wcp_conflicts2 <- mm_results3[[4]] %>% filter(id %in% dupl.id)
+if(any(duplicated(mm_results3$resolved_mm$id))){
+  dupl.id <- mm_results3$resolved_mm$id[duplicated(mm_results3$resolved_mm$id)]
+  mm_results3$resolved_mm <- mm_results3$resolved_mm %>% filter(!(id %in% dupl.id))
+  wcp_conflicts2 <- mm_results3$resolved_mm %>% filter(id %in% dupl.id)
   write.csv(wcp_conflicts2, "./results/wcp_conflicts2.csv", row.names = FALSE, quote=FALSE)
 }
 
 # update the done list with the largest appendix #
-done6 <- rbind(done5, mm_results3[[4]] %>% select(id, accepted_plant_name_id, match_type))
+done6 <- rbind(done5, mm_results3$resolved_mm %>% select(id, accepted_plant_name_id, match_type))
 
 #final check
 done6 <- done6 %>% filter(!is.na(match_type) | !is.na(accepted_plant_name_id) | is.na(id)) %>% unique()
@@ -594,7 +594,21 @@ if(any(fin$id %in% unsolved$id)){
   fin$match_type[fin$id %in% unsolved$id] <- "multimatch"
 }
 
-table(fin$match_type, useNA = "ifany")/nrow(fin)
+# summarize the match overview
+
+table.sum <- as.data.frame(round(table(fin$match_type, useNA = "ifany")/nrow(fin)*100, 2))
+match_lables <- c(as.character(table.sum$Var1[!is.na(table.sum$Var1)]), "NA")
+
+# Plot pie chart to overview the match status.
+pdf(paste0("./results/wcsp_", DB.name, "_match_percentage.pdf", sep=""), width = 7, height = 5)
+
+
+pie(table.sum$Freq, labels = unlist(lapply(table.sum$Freq,function(x) paste0(x,"%", sep=""))), main = paste0("Overview WCSP vs. ", DB.name, " taxonomy match", sep=""), col = rainbow(length(table.sum$Freq)), cex=0.5)
+legend(1,-0.1, bty="n", bg="n", match_lables, cex = 0.5,
+       fill = rainbow(length(table.sum$Freq)))
+
+# Save the file.
+dev.off()
 
 saveRDS(fin, file="./results/fin.rds")
   
@@ -640,25 +654,3 @@ table(fin$taxon_rank[is.na(fin$match_type)])
 # 
 # table(is.na(fin$elevated_to_species_id), useNA="ifany")
 # 
-
-#no match means
-# > zero_match[1:3]
-# [1] "1000417" "1000420" "1001170"
-# > temp <- mm[mm$id=="1001170",]
-# > temp
-# taxon_rank        order       family     genus genus_hybrid    species species_hybrid infra_name author.x
-# 11       <NA> Malpighiales Hypericaceae Hypericum         <NA> silenoides           <NA>       <NA>     <NA>
-#   12       <NA> Malpighiales Hypericaceae Hypericum         <NA> silenoides           <NA>       <NA>     <NA>
-#   Trank.ncbi.full      id taxon_status author.y accepted_plant_name_id match_type
-# 11         species 1001170     Accepted     Juss             516649-wcs       <NA>
-#   12         species 1001170   Misapplied    Kunth             516782-wcs       <NA>
-#   > grep("516782-wcs", res$accepted_plant_name_id)
-# [1] 94843 94948
-# > res[c("94843", "94948"),]
-# taxon_rank        order       family     genus genus_hybrid      species species_hybrid infra_name author.x
-# 94843       <NA> Malpighiales Hypericaceae Hypericum         <NA> thesiifolium           <NA>       <NA>     <NA>
-#   94948       <NA> Malpighiales Hypericaceae Hypericum         <NA>   silenoides           <NA>       <NA>     <NA>
-#   Trank.ncbi.full      id taxon_status author.y accepted_plant_name_id
-# 94843         species 1137036     Accepted    Kunth             516782-wcs
-# 94948         species 1001170   Misapplied    Kunth             516782-wcs
-# > 
