@@ -2,9 +2,6 @@
 ############################
 # Taxon matching BIEN WCSP #
 ############################
-  library(rgdal)
-  library(tidyverse)
-  library(BIEN)
   
 
 # Get data
@@ -89,7 +86,7 @@ bien_input$taxon_rank[which(is.na(bien_input$taxon_rank))] <- "undefined"
 
 
 # RENAMING WCSP
-unique(wc_all[,c("taxon_rank", "infraspecific_rank")])
+#unique(wc_all[,c("taxon_rank", "infraspecific_rank")])
 wc_all$tax_comb <- wc_all$infraspecific_rank
 wc_all$tax_comb <- gsub(".", "", wc_all$tax_comb, fixed=TRUE)
 wc_all$tax_comb <- gsub(",", "", wc_all$tax_comb, fixed=TRUE)
@@ -195,7 +192,7 @@ table(res$match_type, useNA = "ifany") / nrow(res)
 ## get species ID with multiple matches
 multimatch_strict_id <- unique(res$id[which(duplicated(res$id))])
 
-### remove those with NAs
+### remove those with NAs 
 res <- res[-which(res$id %in% multimatch_strict_id & is.na(res$match_type)),]
 multimatch_strict_id <- unique(res$id[which(duplicated(res$id))])
 

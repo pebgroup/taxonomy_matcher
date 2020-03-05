@@ -7,7 +7,7 @@
 if(getwd()=="/data_vol/melanie/BIEN_download"){
   bien <- read.csv(file="all_bien_occurrences_7cols_rm_na.csv")
 }else{
-  chunk_size <- 20000 # choose the best size for you
+  chunk_size <- 2000000 # choose the best size for you
   bien <- read.csv(file="database/all_bien_occurrences_7cols_rm_na.csv",nrows=chunk_size)
 }
 
@@ -48,7 +48,7 @@ names(split_list) <- bien_input$id
 ## split length == 1
 ind <- which(bien_input$split_length==1)
 bien_input$genus[ind] <- as.character(bien_input$scrubbed_taxon_name_no_author[ind])
-bien_input$taxon_rank[ind] <- "Genus"
+bien_input$taxon_rank[ind] <- "genus"
 
 ## split length == 2
 ind <- which(bien_input$split_length==2)
@@ -60,13 +60,13 @@ bien_input$taxon_rank[ind] <- "species"
 ind <- which(bien_input$split_length==3)
 for(i in 1:length(ind)){
   if(split_list[[ind[i]]][1]=="x"){
-    bien_input$genus_hybrid[ind[i]] <- "x"   # ???
+    bien_input$genus_hybrid[ind[i]] <- "x"
     bien_input$genus[ind[i]] <- split_list[[ind[i]]][2]
     bien_input$species[ind[i]] <- split_list[[ind[i]]][3]
     bien_input$taxon_rank[ind[i]] <- "species"
   }
-  if(split_list[[ind[i]]][2]=="x"){
-    if(split_list[[ind[i]]][2]=="x" & grepl("[A-Z]",split_list[[ind[i]]][3])){
+  if(split_list[[ind[i]]][2]=="x"){ # does not occur but you never know
+    if(grepl("[A-Z]",split_list[[ind[i]]][3])){
       bien_input$genus_hybrid[ind[i]] <- "x"
       bien_input$usable[ind[i]] <- "no"
     }else{
@@ -76,15 +76,15 @@ for(i in 1:length(ind)){
       bien_input$taxon_rank[ind[i]] <- "species"
     }
   }
-  if(!any(grepl("x", split_list[[ind[i]]])) & split_list[[ind[i]]][2]!="sect."){
+  if(split_list[[ind[i]]][1]!="x" & split_list[[ind[i]]][2]!="x" & !grepl("[A-Z]",split_list[[ind[i]]][3])){ 
     bien_input$genus[ind[i]] <- split_list[[ind[i]]][[1]]
     bien_input$species[ind[i]] <- split_list[[ind[i]]][[2]]
-    bien_input$taxon_rank[ind[i]] <- "undefined"
+    bien_input$taxon_rank[ind[i]] <- NA
     bien_input$infra_name[ind[i]] <- split_list[[ind[i]]][[3]]
     }
   if(split_list[[ind[i]]][2]!="x" & grepl("[A-Z]",split_list[[ind[i]]][3])){
     bien_input$genus[ind[i]] <- split_list[[ind[i]]][[1]]
-    bien_input$taxon_rank[ind[i]] <- "Genus"
+    bien_input$taxon_rank[ind[i]] <- "genus"
   }
 }
 
@@ -110,7 +110,7 @@ for(i in 1:length(ind)){
     bien_input$species[ind[i]] <- split_list[[ind[i]]][[2]]
     bien_input$taxon_rank[ind[i]] <- split_list[[ind[i]]][[3]]
     bien_input$infra_name[ind[i]] <- split_list[[ind[i]]][[4]]
-    if(split_list[[ind[i]]][[3]]==""){bien_input$taxon_rank[ind[i]] <- "undefined"}
+    if(split_list[[ind[i]]][[3]]==""){bien_input$taxon_rank[ind[i]] <- NA}
   }
   if(!i%%100)cat(i,"\r")
 }
@@ -132,6 +132,9 @@ for(i in 1:length(ind)){
     bien_input$taxon_rank[ind[i]] <- split_list[[ind[i]]][3]
     bien_input$infra_name[ind[i]] <- split_list[[ind[i]]][5]
   }
+  if(split_list[[ind[i]]][3]=="x"){  # this is aiming at Dieffenbachia nitidipetiolada x d. oerstedii
+    bien_input$usable[ind[i]] <- "no"
+  }
 }
 
 ## split length == 6 
@@ -141,9 +144,10 @@ ind <- which(bien_input$split_length==6)
 # bien_input$species[ind] <- sapply(split_list[ind], "[[", 3)
 # bien_input$taxon_rank[ind] <- sapply(split_list[ind], "[[", 4)
 # bien_input$infra_name[ind] <- sapply(split_list[ind], "[[", 5)
-bien_input$usable [ind] <- "no"
+bien_input$usable[ind] <- "no"
 
-bien_input$usable[bien_input$split_length %in% c(7,8)] <- "no"
-
-saveRDS(bien_input, "bien_input_vectorized2.rds")
+  bien_input$usable[bien_input$split_length %in% c(7,8)] <- "no"
+  bien_input <- bien_input[-which(bien_input$usable=="no"),]
+  
+  saveRDS(bien_input, "bien_input_vectorized3.rds")
 
