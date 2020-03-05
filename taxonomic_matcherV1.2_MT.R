@@ -16,8 +16,9 @@
   # renamed all done[1-9] to "done" to update in stead of producing more variables
   # changed order: put no infra rank matching before no family matching
   # I removed all entries from the WCSP that do not point to an accepted taxon ID: avoids matching resulting in NA later on!
+  # added taxon rank for genus + species to the NCBI common format, was missing
   
-  ### WORKS FOR NCBI + BIEN ###
+  ### TESTED WITH NCBI + BIEN ###
   
   ##### READ WCSP DATA ###########################################################
   
