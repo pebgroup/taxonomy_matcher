@@ -1,8 +1,6 @@
 # TO DO
- * adjust merge script to keep NCBI IDs
- * generalize names
- * create 2 markdown files: seperate documentations for common format creator BIEN and NCBI  
- 
+
+ * create documentation markdown for *taxonomic_matcherV1.2_MT.R*.
  
 # Script information  
 
@@ -26,16 +24,15 @@
 
 For documentation on the scripts creating the common format, please refer to the corresponding markdown file:  
 
-* *BIEN_common_format_documentation.md*
+* *[BIEN_common_format_documentation](BIEN_common_format_documentation.md)*
 
 * *[NCBI_common_format_documentation](/NCBI_taxonomy/README.md)*
 
 
-**Taxomimic matching**  
+**Taxonomic matching**  
 
-_Run scipt below and apply the taxonomy database from [World Checklist of Selected Plant Families (WCSP)](https://wcsp.science.kew.org/home.do)_  
+*taxonomic_matcherV1.2_MT.R* performs the matching of the selected common format resulting from BIEN or NCBI data with the [World Checklist of Selected Plant Families (WCSP)](https://wcsp.science.kew.org/home.do).
 
-*taxon_matching_new.R* needs both *wcp_dec_19.rds* (located on the linux server) and the resulting rds file from *common_format_creator_vectorized.R*.
 
-# Workflow for taxon matching
+##   Workflow for taxon matching logic
 ![workflow for matching](workflow_matching.png)
