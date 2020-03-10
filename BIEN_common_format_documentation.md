@@ -7,7 +7,6 @@
 1. Read BIEN data. Required columns: 
    + scrubbed_taxon_name_no_author
    + scrubbed_family
-   + scrubbed_species_binomial
    + scrubbed_author
 2. Note: our download also includes additional columns with occurrence coordinates, therefore we are cleaning the data and exclude all occurrences with latitude values larger than 90 and longitudes absolute values larger than 180.
 3. create unique taxon identifier by combining *scrubbed_taxon_name_no_author* with *scrubbed_author*
