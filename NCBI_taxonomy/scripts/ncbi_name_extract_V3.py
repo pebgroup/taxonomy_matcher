@@ -5,7 +5,7 @@ from collections import Counter
 # connect to ncbi database
 # need modify directory
 
-DB = "plnDB20191101.db"
+DB = "/data_vol/miao/plnDB20191101/plnDB20191101.db"
 conn = sqlite3.connect(DB)
 c = conn.cursor()
 
