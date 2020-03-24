@@ -25,9 +25,9 @@
 
 For documentation on the scripts creating the common format, please refer to the corresponding markdown file:  
 
-	 *[BIEN_common_format_documentation](BIEN_common_format_documentation.md)*
-
-	 *[NCBI_common_format_documentation](/NCBI_taxonomy/README.md)*
+  + *[BIEN_common_format_documentation](BIEN_common_format_documentation.md)*
+  
+  + *[NCBI_common_format_documentation](/NCBI_taxonomy/README.md)*
 
 For documentation on the actual tacon merging procedure, see section [Taxon matching logic](## Taxon matching logic)
 
