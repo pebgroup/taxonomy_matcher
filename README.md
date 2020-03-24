@@ -1,3 +1,4 @@
+
 ---
 # Resolving taxon names from BIEN and NCBI with WCSP
 ---
@@ -6,15 +7,15 @@
 
 **BIEN dataset reformat script (_R_)**  
 
-    _BIEN_taxonomy/common_format_creator_vectorized.R_  
+    BIEN_taxonomy/common_format_creator_vectorized.R  
 
 **NCBI dataset reformat scripts (_Python_)**  
 
-    _NCBI_taxonomy/scripts/ncbi_name_extract_V3.py_  
-    _NCBI_taxonomy/scripts/remove_duplicate.py_  
-    _NCBI_taxonomy/scripts/Spermatophyta_clean3.14snakeV3.py_  
-    _NCBI_taxonomy/scripts/Spermatophyta_plnDB_cleanerV1.1.sh_  
-    _NCBI_taxonomy/scripts/Spermatophyta_sp_authority_format_V5.py_  
+    NCBI_taxonomy/scripts/ncbi_name_extract_V3.py  
+    NCBI_taxonomy/scripts/remove_duplicate.py  
+    NCBI_taxonomy/scripts/Spermatophyta_clean3.14snakeV3.py  
+    NCBI_taxonomy/scripts/Spermatophyta_plnDB_cleanerV1.1.sh  
+    NCBI_taxonomy/scripts/Spermatophyta_sp_authority_format_V5.py  
     
 **Taxon merger (_R_)**      
 
@@ -24,9 +25,9 @@
 
 For documentation on the scripts creating the common format, please refer to the corresponding markdown file:  
 
-	+ *[BIEN_common_format_documentation](BIEN_common_format_documentation.md)*
+	 *[BIEN_common_format_documentation](BIEN_common_format_documentation.md)*
 
-	+ *[NCBI_common_format_documentation](/NCBI_taxonomy/README.md)*
+	 *[NCBI_common_format_documentation](/NCBI_taxonomy/README.md)*
 
 For documentation on the actual tacon merging procedure, see section [Taxon matching logic](## Taxon matching logic)
 
@@ -61,7 +62,7 @@ Required data from the BIEN database include columns *scrubbed_taxon_name_no_aut
 ### NCBI processor
  NCBI common format documentation link [here](/NCBI_taxonomy/README.md)
 
-## Taxon matching logic
+### Taxon matching logic
 To prepare the WCSP data for matching, we combined the columns *infraspecific_rank* and *taxon_rank*, then shrank the dataset to the same columns present in the input dataset plus a column with the accepted plant name ID.
 
 In the first step, a left join (keeping all rows from the input dataframe) of the input dataset with the relevant WCSP dataframe is performed, using all columns for matching except for author names. Author names are rather prone to spelling or punctuation errors, which is why they were excluded in this step. Taxon names with one matching accepted plant name ID were stored as resolved. For cases with more than one match we included the author names in another left join. Cases which could be resolved by using the author name were added as resolved, cases with multiple matches were conservatively considered as unmatchable. For cases with no initial matches, we applied two more matching steps: 1) for taxon names with ranks below the species level and identical species and infraspecific names, we performed a left join without using the taxonomic rank and the infraspecific name for matching. For the remaining cases with no initial match, we 2) matched both dataframes using all fields except for family. As before, single and multiple matches were added to the respective dataframes. Our output is a table including all initially entered taxon names, the type of match (or NA), and the corresponding accepted plant name ID (or NA).
@@ -70,7 +71,7 @@ See figure XX for a graphical presentation of the procedure.
 
 ![](workflow_matching.png)
 
-# References
+## References
 
 [1] WCSP (2020). 'World Checklist of Selected Plant Families. Facilitated by the Royal Botanic Gardens, Kew. Published on the Internet; http://wcsp.science.kew.org/ Retrieved 15 December 2019.' 
 
@@ -79,4 +80,3 @@ See figure XX for a graphical presentation of the procedure.
 [3] [NCBI website](https://www.ncbi.nlm.nih.gov/)  
 
 [4] Boyle, B. et.al. The taxonomic name resolution service: an online tool for automated standardization of plant names. BMC Bioinformatics. 2013, 14:16. doi:10.1186/1471-2105-14-16
-
