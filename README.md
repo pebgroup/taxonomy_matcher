@@ -1,32 +1,32 @@
 ---
-title: Resolving taxon names from BIEN and NCBI with WCSP
+# Resolving taxon names from BIEN and NCBI with WCSP
 ---
 
-# Script information  
+## Script information  
 
 **BIEN dataset reformat script (_R_)**  
 
-    common_format_creator_vectorized.R 
+    _BIEN_taxonomy/common_format_creator_vectorized.R_  
 
 **NCBI dataset reformat scripts (_Python_)**  
 
-    ncbi_name_extract_V3.py  
-    Spermatophyta_plnDB_cleanerV1.1.sh  
-    remove_duplicate.py  
-    Spermatophyta_sp_authority_format_V5.py
-    Spermatophyta_clean3.14snakeV3.py
+    _NCBI_taxonomy/scripts/ncbi_name_extract_V3.py_  
+    _NCBI_taxonomy/scripts/remove_duplicate.py_  
+    _NCBI_taxonomy/scripts/Spermatophyta_clean3.14snakeV3.py_  
+    _NCBI_taxonomy/scripts/Spermatophyta_plnDB_cleanerV1.1.sh_  
+    _NCBI_taxonomy/scripts/Spermatophyta_sp_authority_format_V5.py_  
     
 **Taxon merger (_R_)**      
 
-    taxonomic_matcherV1.2_MT.R
+    taxonomic_matcherV1.2_MT.R  
   
-**Documentation**
+## Documentation  
 
 For documentation on the scripts creating the common format, please refer to the corresponding markdown file:  
 
-* *[BIEN_common_format_documentation](BIEN_common_format_documentation.md)*
+	+ *[BIEN_common_format_documentation](BIEN_common_format_documentation.md)*
 
-* *[NCBI_common_format_documentation](/NCBI_taxonomy/README.md)*
+	+ *[NCBI_common_format_documentation](/NCBI_taxonomy/README.md)*
 
 For documentation on the actual tacon merging procedure, see section [Taxon matching logic](## Taxon matching logic)
 
@@ -41,12 +41,12 @@ For documentation on the actual tacon merging procedure, see section [Taxon matc
 ![workflow for matching](workflow_matching.png) -->
 
 
-# Written documentation
+## Workflow  
 <!-- 
 A text that serves as general documentation of the matching prodecure that can be used e.g. in a supplement.
 -->
 
-## Summary
+### Summary
 In order to combine species occurrence and molecular data from databases that follow different taxonomy guidelines, we developed a taxonomy matching procedure that resolves taxon names according to their accepted name in the World Checklist for Selected Plant Families (WCSP) [1], which serves as our reference taxonomy. We used the WCSP to standardize taxon names from 1) the Botanical Ecology and Information Network (BIEN) database [2], and 2) from the molecular database by the National Center for Biotechnology Information (NCBI) [3].
 Taxon names in BIEN database follow the taxonomy provided by the Taxonomic Name Resolution Service (TNRS) [4], NCBI taxon names follow ???.
 
@@ -59,8 +59,7 @@ Required data from the BIEN database include columns *scrubbed_taxon_name_no_aut
 
 
 ### NCBI processor
- xxxx
- xxxx
+ NCBI common format documentation link [here](/NCBI_taxonomy/README.md)
 
 ## Taxon matching logic
 To prepare the WCSP data for matching, we combined the columns *infraspecific_rank* and *taxon_rank*, then shrank the dataset to the same columns present in the input dataset plus a column with the accepted plant name ID.
@@ -77,7 +76,7 @@ See figure XX for a graphical presentation of the procedure.
 
 [2] Botanical Information and Ecology Network (https://bien.nceas.ucsb.edu/bien/)
 
-[3] NCBI reference ???
+[3] [NCBI website](https://www.ncbi.nlm.nih.gov/)  
 
 [4] Boyle, B. et.al. The taxonomic name resolution service: an online tool for automated standardization of plant names. BMC Bioinformatics. 2013, 14:16. doi:10.1186/1471-2105-14-16
 

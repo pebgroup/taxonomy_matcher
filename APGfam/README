@@ -1,0 +1,8 @@
+Here’s what I just did:
+1. copy-pasted the whole family list from http://www.mobot.org/MOBOT/research/APweb/ into a text file named as apgweb.txt
+2. run python script `apgfam_parser.py` that reads in that list, and generated a csv output (apgweb_parsed.txt) with three columns: 
+1) a list of families that we may find in our data, 
+2) the corresponding accepted family sensu APGWeb, 
+3) the order that family is in (not needed here, but perhaps that will come in handy for partitioning/constraints in PhyloSynth, so I left it in). 
+So I think you can just read in that table, join it to your data using the first column, and use the second column in the matching (obviously check if there are any families that don’t have a match, those may be resolved manually by adding them to apgweb_parsed.txt.
+How does that sound? I’ve pushed the whole thing to our GitHub in a folder called APGfam so you can both have a look.
