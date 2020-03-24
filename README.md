@@ -50,9 +50,9 @@ A text that serves as general documentation of the matching prodecure that can b
 
 ### Summary
 In order to combine species occurrence and molecular data from databases that follow different taxonomy guidelines, we developed a taxonomy matching procedure that resolves taxon names according to their accepted name in the World Checklist for Selected Plant Families (WCSP)<sup>[1]</sup>, which serves as our reference taxonomy. We used the WCSP to standardize taxon names from two databases:  
-+ 1) the Botanical Ecology and Information Network (BIEN) database<sup>[2]</sup>  
++ The Botanical Ecology and Information Network (BIEN) database<sup>[2]</sup>  
 	
-+ 2) from the molecular database by the National Center for Biotechnology Information (NCBI)<sup>[3]</sup>  
++ The molecular database by the National Center for Biotechnology Information ([NCBI](https://www.ncbi.nlm.nih.gov/))<sup>[3]</sup>  
 
 Taxon names in BIEN database follow the taxonomy provided by the Taxonomic Name Resolution Service (TNRS)<sup>[4]</sup>, NCBI taxon names follow APG IV<sup>[5]</sup> (also see [APWeb](http://www.mobot.org/MOBOT/research/APweb/)).  
 
@@ -78,11 +78,12 @@ In the first step, a `left_join` (keeping all rows from the input dataframe) of 
 For cases with more than one match we included the author names in another left join.  
 Cases which could be resolved by using the author name were added as resolved, cases with multiple matches were conservatively considered as unmatchable.  
 For cases with no initial matches, we applied two more matching steps:  
-	+ 1) For taxon names with ranks below the species level and identical species and infraspecific names, we performed a `left_join` without using the `taxonomic_rank` and the `infraspecific` name for matching.  
+
+	1. For taxon names with ranks below the species level and identical species and infraspecific names, we performed a `left_join` without using the `taxonomic_rank` and the `infraspecific` name for matching.  
 		
-	+ 2) For the remaining cases with no initial match, we matched both dataframes using all fields except for family.  
+	2. For the remaining cases with no initial match, we matched both dataframes using all fields except for family.  
 		
-	+ 3) As before, single and multiple matches were added to the respective dataframes.  
+	3. As before, single and multiple matches were added to the respective dataframes.  
 	
 Our output is a table including all initially entered taxon names, the type of match (or "NA""), and the corresponding `accepted_plant_name_ID` (or "NA"").  
 
@@ -95,7 +96,12 @@ See figure XX for a graphical presentation of the procedure.
 ## References  
 
 [1] WCSP (2020). 'World Checklist of Selected Plant Families. Facilitated by the Royal Botanic Gardens, Kew. Published on the Internet; http://wcsp.science.kew.org/ Retrieved 15 December 2019.'  
+
 [2] Botanical Information and Ecology Network (https://bien.nceas.ucsb.edu/bien/)  
-[3] [NCBI website](https://www.ncbi.nlm.nih.gov/)  
+
+[3] NCBI website: https://www.ncbi.nlm.nih.gov/  
+
 [4] Boyle, B. et.al. The taxonomic name resolution service: an online tool for automated standardization of plant names. BMC Bioinformatics. 2013, 14:16. doi:10.1186/1471-2105-14-16  
-[5] APG IV. An update of the Angiosperm Phylogeny Group classification for the orders and families of flowering plants: APG IV. Botanical Journal of the Linnean Society, 2016, 181, 1–20. [link](https://academic.oup.com/botlinnean/article/181/1/1/2416499)  
+
+[5] APG IV. An update of the Angiosperm Phylogeny Group classification for the orders and families of flowering plants: APG IV. Botanical Journal of the Linnean Society, 2016, 181, 1–20. [Link](https://academic.oup.com/botlinnean/article/181/1/1/2416499)  
+
