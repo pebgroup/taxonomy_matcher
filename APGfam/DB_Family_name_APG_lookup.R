@@ -7,7 +7,12 @@ NCBI <- read.csv("./data/NCBI_old.csv", header=T, stringsAsFactors = F)
 
 f.apg <- read.csv("./data/apgweb_parsed.csv", stringsAsFactors = F)
 #grep("near_|fossil_", f.apg$Clade)
+
+# remove some clade names don't have a valida name ("near_XXX") or a fossil name ("fossil")
+
 f.apg <- f.apg %>% filter(!(str_detect(Clade, "near_") | str_detect(Clade, "fossil"))) %>% select(Syn_Fam, Acc_Fam, Clade)
+
+# Intresting thing: "Adoxaceae" is treated as "syn" name of "Viburnaceae" in APWeb, which is conflict with APG IV; need to swap
 
 # > f.apg[grep("Adoxaceae", f.apg$Syn_Fam),]
 # Syn_Fam     Acc_Fam      Clade
@@ -21,11 +26,14 @@ f.apg[grep("Viburnaceae", f.apg$Syn_Fam),]$Acc_Fam <- "Adoxaceae"
 # > setdiff(f.ncbi$family, fam.apg$Syn_Fam)
 # [1] "Ripogonaceae"
 
+# also one more family names "Rhipogonaceae" was not recorded in APWeb
+# so Manual added in "Rhipogonaceae" == "Ripogonaceae"  
+
 f.apg <- rbind.data.frame(f.apg, c("Rhipogonaceae", "Ripogonaceae", "Liliales"),c("Ripogonaceae", "Ripogonaceae", "Liliales")) %>% arrange(Syn_Fam) %>% unique()
 
-#remove ferns
+# caution serval invalid strings in fern clade names (check before do)
 # grep("_", f.apg$Clade)
-f.apg <- f.apg %>% filter(!(str_detect(Clade, "_")))
+#f.apg <- f.apg %>% filter(!(str_detect(Clade, "_"))) # uncomment this line if want to remove ferns
 names(f.apg) <- c("family", "family.apg", "order")
 write.csv(f.apg, "./results/apgweb_Spermatophyta_only_checked.csv", row.names = F, quote = F)
 
@@ -50,7 +58,10 @@ WCSP <- readRDS("./data/wcp_dec_19.rds")
 # [1] "Aspleniaceae"   "Byxaceae"       "Gigaspermaceae" "Incertae_sedis" "Isoetaceae"    
 # [6] "Oligomeris"     "Osmundaceae"    "Polypodiaceae"  "Schoberia"      "v" 
 
-# #ferns remove
+########################################################################
+# caution serval invalid strings in fern clade names (check before do)#
+########################################################################
+# #ferns families
 # "Aspleniaceae"
 # "Osmundaceae" 
 # "Polypodiaceae"
@@ -65,6 +76,11 @@ WCSP <- readRDS("./data/wcp_dec_19.rds")
 # [1] "Angeja"      "Anonymos"    "Cipum"       "Euphrona"    "Ivonia"      "Pouslowia"  
 # [7] "Theodoricea" "Thuraria"    "Urceola"
 
+#uncomment this line below if want to keep ferns
+# moss.inc <- c("Gigaspermaceae", "Incertae_sedis")
+# WCSP1 <- WCSP %>% filter(!(family %in% moss.inc)) %>% filter(accepted_plant_name_id!="1142939-az")
+
+#comment line below if want to keep ferns and uncomment the lines above
 ferns.moss.inc <- c("Aspleniaceae", "Osmundaceae", "Polypodiaceae", "Isoetaceae", "Ophioglossaceae", "Schizaeaceae", "Gigaspermaceae", "Incertae_sedis")
 WCSP1 <- WCSP %>% filter(!(family %in% ferns.moss.inc)) %>% filter(accepted_plant_name_id!="1142939-az")
 
@@ -77,6 +93,7 @@ WCSP1 <- WCSP %>% filter(!(family %in% ferns.moss.inc)) %>% filter(accepted_plan
 # [1] "Buxaceae" "Byxaceae"
 
 # WCSP1$family <- mgsub::mgsub(WCSP1$family, c("Byxaceae", "Oligomeris", "Schoberia"), c("Buxaceae", "Resedaceae", "Amaranthaceae"))
+# correct famlies names
  WCSP1$family <- gsub("Byxaceae", "Buxaceae", WCSP1$family)
  WCSP1$family <- gsub("Oligomeris", "Resedaceae", WCSP1$family)
  WCSP1$family <- gsub("Schoberia", "Amaranthaceae", WCSP1$family)
