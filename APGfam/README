@@ -1,0 +1,10 @@
+Instruction:
+1. copy-pasted the whole family list from http://www.mobot.org/MOBOT/research/APweb/ into a text file named as apgweb.txt
+2. run `python3 apgfam_parser_v1.0.1.py` that reads in that list, and generated a cleaner csv output (apgweb_parsed.txt) with three columns: 
+1) a list of families that we may find in our data, 
+2) the corresponding accepted family sensu APGWeb, 
+3) the order that family is in (not needed here, but perhaps that will come in handy for partitioning/constraints in PhyloSynth, so I left it in). 
+#combined to NCBI database
+4) read in that table, join it to your data using the first column, and use the second column in the matching (obviously check if there are any families that don’t have a match, those may be resolved manually by adding them to apgweb_parsed.txt.
+
+Rscript `DB_Family_name_APG_lookup.R` is used to addin "family" and "order" from APWeb to the NCBI and WCSP databases, respectively, for future match. 
