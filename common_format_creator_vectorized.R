@@ -33,12 +33,16 @@ bien_input <- data.frame(scrubbed_taxon_name_no_author=bien_sub$scrubbed_taxon_n
                          taxon_rank = rep(NA, nrow(bien_sub)),
                          infra_name = rep(NA, nrow(bien_sub)),
                          comment = rep(NA, nrow(bien_sub)),
-                         usable = rep(NA, nrow(bien_sub))
+                         usable = rep(NA, nrow(bien_sub)),
+                         taxon_author_ID = bien_sub$taxon_author_ID
 )
 
 # order the dataframe by split length
 bien_input <- bien_input[order(bien_input$split_length),]
 bien_input$id <- c(1:nrow(bien_input))
+
+#id_name_connect <- bien_input[,c(bien_input$taxon_author_ID, bien_input$id)]
+#saveRDS()
 
 split_list <- strsplit(as.character(bien_input$scrubbed_taxon_name_no_author), split = " ")
 names(split_list) <- bien_input$id
@@ -149,5 +153,5 @@ bien_input$usable[ind] <- "no"
   bien_input$usable[bien_input$split_length %in% c(7,8)] <- "no"
   bien_input <- bien_input[-which(bien_input$usable=="no"),]
   
-  saveRDS(bien_input, "bien_input_vectorized3.rds")
+  saveRDS(bien_input, "bien_input_vectorized4.rds")
 
