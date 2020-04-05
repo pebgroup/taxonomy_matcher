@@ -69,7 +69,7 @@ Store some scripts and results from matching NCBI and WCSP taxonomies
 
 **Step 4: Run `Spermatophyta_sp_authority_format_v4.py`**   
 
-  This script will reformat the NCBI taxonomy file, mainly split taxon Authority into a different column, and correct the taxon status (for examples a _"varietas"_ assigned to  _"species"_).  
+  This script will reformat the NCBI taxonomy file, mainly split taxon Authority into a seperated column (since ncbi authority infomration is stick with species names in one column), and correct the taxon status (for example, some cases in ncbi,  a _"varietas"_ assigned to  _"species"_).  
   
   It also generates 4 output files:  
   
@@ -118,5 +118,5 @@ Store some scripts and results from matching NCBI and WCSP taxonomies
 
 Last update:  
 
-_Mon Feb 17 14:42:32 2020_  
+_Sun Apr  5 12:49:54 2020_  
 
