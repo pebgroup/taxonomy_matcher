@@ -21,8 +21,8 @@
 
     taxonomic_matcherV1.2_MT.R  
     
-    _Updated with APG family:_  
-    taxonomic_matcher.v.1.4.R  
+   _Updated with APG family:_    
+    taxonomic_matcher.v.1.4.R   
     
   
 ## Documentation  
@@ -33,7 +33,7 @@ For documentation on the scripts creating the common format, please refer to the
   
   + *[NCBI processor](/NCBI_taxonomy/README.md)*
 
-For documentation on the actual taxon merging procedure, see section [Taxon matching logic](### Taxon matching logic)
+For documentation on the actual taxon merging procedure, see section [Taxon matching logic](#taxon-matching-logic)
 
 
 <!--
@@ -76,7 +76,7 @@ Briefly, we used `ncbi_name_extract_V3.py` to extract NCBI taxonomy from NCBI da
 
 _For more detailed NCBI common format documentation clik [here](/NCBI_taxonomy/README.md)_  
 
-### Taxon matching logic  
+### Taxon matching logic
 To prepare the WCSP data for matching, we combined the columns *infraspecific_rank* and *taxon_rank*, then shrank the dataset to the same columns present in the input dataset plus a column with the accepted plant name ID.  
 
 In the first step, a `left_join` (keeping all rows from the input dataframe) of the input dataset with the relevant WCSP dataframe is performed, using all columns for matching except for author names. Author names are rather prone to spelling or punctuation errors, which is why they were excluded in this step. Taxon names with one matching `accepted_plant_name_ID` were stored as resolved.  
