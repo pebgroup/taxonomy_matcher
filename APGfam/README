@@ -8,3 +8,23 @@ Instruction:
 4) read in that table, join it to your data using the first column, and use the second column in the matching (obviously check if there are any families that don’t have a match, those may be resolved manually by adding them to apgweb_parsed.txt.
 
 Rscript `DB_Family_name_APG_lookup.R` is used to addin "family" and "order" from APWeb to the NCBI and WCSP databases, respectively, for future match. 
+
+# update
+removed special character from Isoetaceae in f.apg file to allow for matching.
+
+# comments for BIEN data
+This script is applied at the common format which is being fed into the taxonomy merger script to allow for local editing. The original BIEN data does not fit into memory.
+
+The current BIEN setup cleans out 26450 taxa (6.6%), including the following: 
+"Rhodophyta" Red algae
+"Chlorophyta" Green algae
+"Marchantiophyta" liverworts
+"Bryophyta" hornworts
+"Ascomycota" fungus
+"Cyanobacteria" ...
+"Basidiomycota" fungus
+"Ochrophyta"  yellow-green algae
+"Anthocerotophyta" hornworts
+"Euglenozoa" not even a plant
+
+Removes also two entries which are most likely errors: Cluisaceae + Hemionitidaceae, see code comments for details
