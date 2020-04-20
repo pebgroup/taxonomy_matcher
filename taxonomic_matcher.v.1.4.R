@@ -5,7 +5,7 @@
   library(tidyverse)
   
   # chose dataset: BIEN or NCBI 
-  DB.name <- "NCBI"
+  DB.name <- "BIEN"
   
   
   ######## comments Melanie ######################################################
@@ -103,14 +103,14 @@
   
   #### BIEN ####
   
-  #####################################################
-  # BIEN's family names has not addedin "family.apg" #
-  ####################################################
   if(DB.name=="BIEN"){
   
-    bien_input <- readRDS("data/bien_input_vectorized3.rds")
+    bien_input <- readRDS("data/bien_input_vectorized3.apg.rds")
     
     # RENAMING BIEN
+    # remove old family field
+    bien_input <- bien_input %>% 
+      select(-family)
     
     # straighten formats
     bien_input$taxon_rank[which(bien_input$taxon_rank=="[unranked]")] <- NA
@@ -129,11 +129,13 @@
     bry <- read.csv("data/bryophyta.csv")
     bryos <- as.character(bry[,1])
     bryos <- gsub(" ", "", bryos)
-    bien_input <- bien_input[!bien_input$family %in% bryos,]
+    bien_input <- bien_input[!bien_input$family.apg %in% bryos,]
     
     # exclude taxa without extracted genus
-    bien_input <- bien_input[-which(is.na(bien_input$genus)),]
-  
+    if(any(is.na(bien_input$genus))){
+      bien_input <- bien_input[-which(is.na(bien_input$genus)),]      
+    }
+
     dataset <- bien_input
     rm(bien_input)
   }  
@@ -387,18 +389,19 @@
   fin <- left_join(dataset, done, by="id", all.x=TRUE)
   
   # combine unresolved into one file
-
   unsolved <- bind_rows(mm_results$unresolved_mm, mm_results2$unresolved_mm, mm_results3$unresolved_mm)
-  
-  saveRDS(unsolved, file=paste0("./results/unsolved_", DB.name , ".rds"))
-  write.csv(unsolved, paste0("./results/unsolved_", DB.name , ".csv"), row.names = F, quote = F )
   
   # assign multimatch 
   if(any(fin$id %in% unsolved$id)){
     fin$match_type[fin$id %in% unsolved$id] <- "multimatch"
   }
   
-  # save output
+  
+  # save output #######################################################################################3
+  
+  saveRDS(unsolved, file=paste0("./results/unsolved_", DB.name , ".rds"))
+  write.csv(unsolved, paste0("./results/unsolved_", DB.name , ".csv"), row.names = F, quote = F )
+  
   saveRDS(fin, file=paste0("./results/fin_", DB.name , ".rds"))
   write.csv(fin, paste0("./results/fin_", DB.name , ".csv"), row.names = F, quote = F )
   # table(fin$match_type, useNA = "ifany")
@@ -409,7 +412,9 @@
   #########################
   ##Stephen prefered including accepted taxon names in the macth
   ########################
-  wcsp.acc.name <- wc_all_sub %>% select(taxon_name, taxon_status, accepted_plant_name_id) %>% filter(taxon_status=="Accepted")
+  wcsp.acc.name <- wc_all_sub %>% 
+    select(taxon_name, taxon_status, accepted_plant_name_id) %>% 
+    filter(taxon_status=="Accepted")
   
   wc_all_sub <- d.as.chr(wc_all_sub)
   fin<- d.as.chr(fin)
