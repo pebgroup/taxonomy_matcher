@@ -3,9 +3,10 @@
   ############################
   rm(list=ls())
   library(tidyverse)
+  library(data.table)
   
-  # chose dataset: BIEN or NCBI 
-  DB.name <- "BIEN"
+  # chose dataset: BIEN or NCBI or GBIF
+  DB.name <- "GBIF"
   
   
   ######## comments Melanie ######################################################
@@ -17,16 +18,10 @@
   # I removed all entries from the WCSP that do not point to an accepted taxon ID: avoids matching resulting in NA later on!
   # added taxon rank for genus + species to the NCBI common format, was missing
   
-  ### TESTED WITH NCBI + BIEN ###
   
-  ##### READ WCSP DATA ###########################################################
+  ##### READ + ADJUST WCSP DATA ###########################################################
   
-  # wc_all <- readRDS("data/wcp_dec_19.rds")
-  wc_all <- readRDS("data/WCSP.apg.rds")
-  
-  
-  
-  #### RENAMING WCSP #############################################################
+  wc_all <- readRDS("./data/WCSP.apg.rds")
   
   # add new column "tax_comb" to unify taxon ranks and infraspecific ranks column
   wc_all$tax_comb <- wc_all$infraspecific_rank # transfer content
@@ -66,9 +61,6 @@
   }
   
   wc_all_sub <- d.as.chr(wc_all_sub)
-  
-  # saveRDS(wc_all_sub, file="./results/wc_all_sub.rds")
-  #wc_all_sub <- readRDS("./results/wc_all_sub.rds")
   
   
   
@@ -126,7 +118,7 @@
     bien_input[,1:3] <- lapply(bien_input[,1:3], as.character)
     
     # exclude Bryophyta
-    bry <- read.csv("data/bryophyta.csv")
+    bry <- read.csv("./data/bryophyta.csv")
     bryos <- as.character(bry[,1])
     bryos <- gsub(" ", "", bryos)
     bien_input <- bien_input[!bien_input$family.apg %in% bryos,]
@@ -138,6 +130,40 @@
 
     dataset <- bien_input
     rm(bien_input)
+  }  
+  
+  #### GBIF ####
+  
+  if(DB.name=="GBIF"){
+    
+    input <- readRDS("./data/input_tip_labels_apg.rds")
+    
+    
+    # RENAMING
+    # remove old family field
+    input <- input %>% 
+      select(-family)
+    
+    # rename
+    input$taxon_rank <- gsub("variety", "var", input$taxon_rank, fixed=TRUE)
+    input$taxon_rank[which(is.na(input$taxon_rank))] <- "undefined"
+    
+    classes <- as.vector(unlist(lapply(input, class)))
+    input[,which(classes=="factor")] <- lapply(input[,which(classes=="factor")], as.character)
+    
+    # exclude Bryophyta
+    bry <- read.csv("./data/bryophyta.csv")
+    bryos <- as.character(bry[,1])
+    bryos <- gsub(" ", "", bryos)
+    input <- input[!input$family.apg %in% bryos,]
+    
+    # exclude taxa without extracted genus
+    if(any(is.na(input$genus))){
+      input <- input[-which(is.na(input$genus)),]      
+    }
+    
+    dataset <- input
+    rm(input)
   }  
   
   
@@ -400,29 +426,25 @@
   # save output #######################################################################################3
   
   saveRDS(unsolved, file=paste0("./results/unsolved_", DB.name , ".rds"))
-  write.csv(unsolved, paste0("./results/unsolved_", DB.name , ".csv"), row.names = F, quote = F )
+  fwrite(unsolved, paste0("./results/unsolved_", DB.name , ".csv"), row.names = F, quote = F )
   
   saveRDS(fin, file=paste0("./results/fin_", DB.name , ".rds"))
-  write.csv(fin, paste0("./results/fin_", DB.name , ".csv"), row.names = F, quote = F )
-  # table(fin$match_type, useNA = "ifany")
-  # table(fin$match_type, useNA = "ifany")/nrow(fin)
-  # table(fin$family[fin$match_type %in% c("multimatch")], useNA = "ifany")
-  # table(fin$taxon_rank[is.na(fin$match_type)])
+  fwrite(fin, paste0("./results/fin_", DB.name , ".csv"), row.names = F, quote = F )
   
   #########################
   ##Stephen prefered including accepted taxon names in the macth
   ########################
-  wcsp.acc.name <- wc_all_sub %>% 
+  wcsp.acc.name <- wc_all %>% 
     select(taxon_name, taxon_status, accepted_plant_name_id) %>% 
     filter(taxon_status=="Accepted")
   
-  wc_all_sub <- d.as.chr(wc_all_sub)
-  fin<- d.as.chr(fin)
+  #wc_all_sub <- d.as.chr(wc_all_sub)
+  #fin<- d.as.chr(fin)
   
-  ncbi_wcsp.w.acc.name <- left_join(fin, wcsp.acc.name, by="accepted_plant_name_id")
+  wcsp.w.acc.name <- left_join(fin, wcsp.acc.name, by="accepted_plant_name_id")
   
-  saveRDS(ncbi_wcsp.w.acc.name, paste0("./results/",  DB.name , "_wcsp.acc.name.apg.rds", sep=""))
-  write.csv(ncbi_wcsp.w.acc.name, paste0("./results/",  DB.name , "_wcsp.acc.name.apg.csv", sep=""), row.names = F)
+  saveRDS(wcsp.w.acc.name, paste0("./results/",  DB.name , "_wcsp.acc.name.apg.rds", sep=""))
+  fwrite(wcsp.w.acc.name, paste0("./results/",  DB.name , "_wcsp.acc.name.apg.csv", sep=""), row.names = F)
   
   
   
@@ -470,8 +492,19 @@
   # save output
   saveRDS(fin_species_match, file=paste0("./results/fin_species_match_", DB.name, ".rds"))
   
-  # View(fin_species_match[,c("scrubbed_taxon_name_no_author", "match_type", "accepted_plant_name_id", "elevated_to_species_id")])
   
-  # Note: excample "Equisetum variegatum var. alaskanum" has no elevated to species level ID, because the accepted plant name ID is at species level already
-  # If the original taxon name input was species level, and it still gets an elevated to species level ID, that means the species name points to an accepted subspecies, 
-  # which again was matched with its parent sepcies name  (see for example "Centaurea asperula")
+  # Note that some species will not have species level ID assigned, that is because 
+  # the accepted plant name ID is at species level already (example: "Equisetum variegatum var. alaskanum")
+  # If the original taxon name input was species level, and it still gets an elevated to species level ID assigned,
+  # that means the species name points to an accepted subspecies, which again was matched with its parent 
+  # species name  (see for example "Centaurea asperula")
+  
+  
+  
+  
+  ###### MATCH STATS #######
+  table(fin$match_type, useNA = "ifany")
+  table(fin$match_type, useNA = "ifany")/nrow(fin)
+  table(fin$family[fin$match_type %in% c("multimatch")], useNA = "ifany")
+  table(fin$taxon_rank[is.na(fin$match_type)])
+
