@@ -21,16 +21,16 @@ library("stringr")
 
 
 
-# Choose database, possible values: WCSP, NCBI, BIEN. ###########################
+# Choose database, possible values: WCSP, NCBI, BIEN, GBIF ###########################
 # You can chose more than 1 (e.g. c("BIEN", "NCBI")) 
-db <- "BIEN"
+db <- "WCSP"
 
 
 
 
 
 # APG edits ######################################################################
-f.apg <- read.csv("../data/apgweb_parsed.csv", stringsAsFactors = F)
+f.apg <- read.csv("./data/apgweb_parsed.csv", stringsAsFactors = F)
 #grep("near_|fossil_", f.apg$Clade)
 
 # remove some clade names don't have a valida name ("near_XXX") or a fossil name ("fossil")
@@ -85,7 +85,7 @@ if("NCBI" %in% db){
     arrange(family) %>% 
     unique()
   NCBI.apg <- left_join(NCBI.tmp, f.apg, by="family")
-  saveRDS(NCBI.apg, "../data/NCBI.apg.rds")
+  saveRDS(NCBI.apg, "./data/NCBI.apg.rds")
   write.csv(NCBI.apg, "./results/Spermatophyta_NCBI_APG_checked.csv", row.names = F, quote = F)
   # checklist <- NULL
   # for (i in NCBI.apg$ncbi_id[duplicated(NCBI.apg$ncbi_id)]){
@@ -97,17 +97,15 @@ if("NCBI" %in% db){
 }
 
 if("WCSP" %in% db){
-  wcsp <- readRDS("../data/wcp_dec_19.rds")
+  wcsp <- readRDS("./data/wcp_jun_20.rds")
   
   #check for no match and fix
   
   setdiff(unique(wcsp$family), unique(f.apg$family))
-  # I get this:  [1] "Byxaceae"       "Gigaspermaceae" "Incertae_sedis"    "Oligomeris"     "Osmundaceae"    "Schoberia"      "v" 
-  ## [1] "Aspleniaceae"   "Byxaceae"       "Gigaspermaceae" "Incertae_sedis" "Isoetaceae"    
-  ## [6] "Oligomeris"     "Osmundaceae"    "Polypodiaceae"  "Schoberia"      "v" 
-  
+  # Should be:  [1] "Byxaceae"       "Gigaspermaceae" "Incertae_sedis"    "Oligomeris"     "Schoberia"      "v" 
+
   ########################################################################
-  # caution serval invalid strings in fern clade names (check before do)#
+  # caution: several invalid strings in fern clade names (check before do)#
   ########################################################################
   # #ferns families
   # "Aspleniaceae"
@@ -158,8 +156,8 @@ if("WCSP" %in% db){
   
   wcsp.apg <- left_join(wcsp1, f.apg, by="family")
   
-  saveRDS(wcsp.apg, "../data/WCSP.apg.rds")
-  #write.csv(wcsp.apg, "../results/Spermatophyta_WCSP_APG_checked.csv", row.names = F, quote = F)
+  saveRDS(wcsp.apg, "./data/WCSP.apg.rds")
+  #write.csv(wcsp.apg, "./results/Spermatophyta_WCSP_APG_checked.csv", row.names = F, quote = F)
   
 }
 
@@ -234,5 +232,34 @@ if("BIEN" %in% db){
   
   saveRDS(bien.apg, "../data/bien_input_vectorized3.apg.rds")
 }  
+
+if("GBIF" %in% db){
+  gbif <- readRDS("../data/input_tip_labels.rds") #_new_sript.rds is the one built using GBIF names only
+  
+  (sort(fams <- setdiff(unique(gbif$family), unique(f.apg$family))))
+  # manual research
+  # Cyclostigmataceae: source = PBDB, probably doubtful: remove
+  # Hookeriaceae = moss: Elharveya visicularioides
+  # Hymenochaetaceae = fungus, remove
+  # Sphaerocystidaceae = green algea, should not be in the tree: Planochloris pyrenoidifera
+  # Stixaceae = typo of Stixidaceae (included in APG) --> change family name manually here 
+  # Ulotrichaceae = green algae Hormidium ... 181911
+
+  
+  gbif$family <- as.character(gbif$family)
+  gbif$family[which(gbif$family=="Stixaceae")] <- "Stixidaceae"
+  gbif <- gbif[-which(gbif$family %in% c("Sphaerocystidaceae",
+                                   "Hookeriaceae",
+                                   "Cyclostigmataceae", 
+                                   "Ulotrichaceae",
+                                   "Hymenochaetaceae")),]
+  
+  setdiff(unique(gbif$family), unique(f.apg$family))
+  # should just be NAs for missing family information
+  
+  gbif.apg <- left_join(gbif, f.apg, by="family")
+  
+  saveRDS(gbif.apg, "../data/input_tip_labels_apg.rds")
+}
   
   
