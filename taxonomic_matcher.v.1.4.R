@@ -5,11 +5,27 @@
   library(tidyverse)
   library(data.table)
   
+  ####### SETUP ##########################################################################
   # chose dataset: BIEN or NCBI or GBIF
   DB.name <- "GBIF"
+  data_folder_path <- "./data/" # depends on where your working directory is set
+  results_folder_path <- "./results/"
+  
+  ## specify input file names:
+  ncbi_input_filename <- "apg_NCBI_old.csv"
+  wcsp_input_filename <- "apg_wcp_jun_20.rds"
+  bien_input_filename <- "apg_bien_input_vectorized3.rds"
+  gbif_input_filename <- "apg_common_format_jeppe.rds"
+  
+  # output
+  unsolved_file <- paste0("unsolved_", DB.name , ".rds")
+  unsolved_file_csv <- paste0("unsolved_", DB.name , ".csv")
+  fin_file <- paste0("fin_", DB.name , ".rds")
+  fin_file_csv <- paste0("fin_", DB.name , ".csv")
+  fin_file_species <- paste0("fin_species_match_", DB.name, ".rds")
   
   
-  ######## comments Melanie ######################################################
+  ######## comments Melanie ##############################################################
   # line 8: Moved dataset choice to the top of the script
   # lines 39+40 are mandatory to get genus and species into the tax_comb-->taxon_rank column - needs to stay
   # multimatch handling: clarfiy matching procedures & adapt the matching workflow chart
@@ -21,7 +37,7 @@
   
   ##### READ + ADJUST WCSP DATA ###########################################################
   
-  wc_all <- readRDS("./data/WCSP.apg.rds")
+  wc_all <- readRDS(paste0(data_folder_path, wcsp_input_filename))
   
   # add new column "tax_comb" to unify taxon ranks and infraspecific ranks column
   wc_all$tax_comb <- wc_all$infraspecific_rank # transfer content
@@ -72,7 +88,7 @@
   if(DB.name=="NCBI"){
     
     # dataset <- read.csv(paste0("./data/",DB.name, ".csv"), header=TRUE, stringsAsFactors = FALSE)
-    dataset <- readRDS(paste0("./data/", DB.name, ".apg.rds", sep=""))
+    dataset <- readRDS(paste0(data_folder_path, ncbi_input_filename))
     #cleaning
     dataset$infraspecific_rank <- gsub("\\.|,", "", dataset$infraspecific_rank)
     dataset[dataset==""]<-NA
@@ -97,7 +113,7 @@
   
   if(DB.name=="BIEN"){
   
-    bien_input <- readRDS("data/bien_input_vectorized3.apg.rds")
+    bien_input <- readRDS(paste0(data_folder_path, bien_input_filename))
     
     # RENAMING BIEN
     # remove old family field
@@ -136,7 +152,7 @@
   
   if(DB.name=="GBIF"){
     
-    input <- readRDS("./data/input_tip_labels_apg.rds")
+    input <- readRDS(paste0(data_folder_path, gbif_input_filename))
     
     
     # RENAMING
@@ -152,7 +168,7 @@
     input[,which(classes=="factor")] <- lapply(input[,which(classes=="factor")], as.character)
     
     # exclude Bryophyta
-    bry <- read.csv("./data/bryophyta.csv")
+    bry <- read.csv(paste0(data_folder_path, "bryophyta.csv"))
     bryos <- as.character(bry[,1])
     bryos <- gsub(" ", "", bryos)
     input <- input[!input$family.apg %in% bryos,]
@@ -425,11 +441,11 @@
   
   # save output #######################################################################################3
   
-  saveRDS(unsolved, file=paste0("./results/unsolved_", DB.name , ".rds"))
-  fwrite(unsolved, paste0("./results/unsolved_", DB.name , ".csv"), row.names = F, quote = F )
+  saveRDS(unsolved, file=paste0(results_folder_path, unsolved_file))
+  fwrite(unsolved, paste0(results_folder_path, unsolved_file_csv), row.names = F, quote = F )
   
-  saveRDS(fin, file=paste0("./results/fin_", DB.name , ".rds"))
-  fwrite(fin, paste0("./results/fin_", DB.name , ".csv"), row.names = F, quote = F )
+  saveRDS(fin, file=paste0(results_folder_path, fin_file))
+  fwrite(fin, paste0(results_folder_path, fin_file_csv), row.names = F, quote = F )
   
   #########################
   ##Stephen prefered including accepted taxon names in the macth
@@ -443,8 +459,8 @@
   
   wcsp.w.acc.name <- left_join(fin, wcsp.acc.name, by="accepted_plant_name_id")
   
-  saveRDS(wcsp.w.acc.name, paste0("./results/",  DB.name , "_wcsp.acc.name.apg.rds", sep=""))
-  fwrite(wcsp.w.acc.name, paste0("./results/",  DB.name , "_wcsp.acc.name.apg.csv", sep=""), row.names = F)
+  saveRDS(wcsp.w.acc.name, paste0(results_folder_path,  DB.name , "_wcsp.acc.name.apg.rds"))
+  fwrite(wcsp.w.acc.name, paste0(results_folder_path,  DB.name , "_wcsp.acc.name.apg.csv"), row.names = F)
   
   
   
@@ -455,7 +471,7 @@
   # --> match the subspecies-level dataframe with the species-level dataframe based on genus and species name
   # --> attach the species-level accepted ID to the final dataframe
   
-  ## subset wcsp to species occurring in BIEN 
+  ## subset wcsp to species present in input data
   ids <- unique(fin$accepted_plant_name_id)
   wc_sub <- wc_all[wc_all$plant_name_id %in% ids,]
   
@@ -490,7 +506,7 @@
                by.y="plant_name_id", all.x=TRUE)
   
   # save output
-  saveRDS(fin_species_match, file=paste0("./results/fin_species_match_", DB.name, ".rds"))
+  saveRDS(fin_species_match, file=paste0(results_folder_path, fin_file_species))
   
   
   # Note that some species will not have species level ID assigned, that is because 
