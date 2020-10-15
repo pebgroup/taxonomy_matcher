@@ -1,53 +1,57 @@
-## Script to build a common format to feed into the taxonomy matcher. 
+## Script to build a common format to feed into the taxonomy matcher ##############################################
 # Processed databases are BIEN and GBIF. 
 # Each database has it`s own format, requiring partly individual treatment
 
-## Computational requirements:
-# BIEN data requires >8 GB RAM, runs on a 128GB machine. Always test with local subset (chose in GET DATA section)
+## Computational requirements #####################################################################################
+# BIEN data requires >8 GB RAM, runs on a 128GB machine. Always test with local subset!
 
-## Notes on BIEN
+## Notes on BIEN ##################################################################################################
 # BIEN download data requires following columns: # scrubbed_taxon_name_no_author, scrubbed_family, scrubbed_author.
 # We SQL-queried the BIEN database via BIEN:::.BIEN_sql()
 
-## Notes on GBIF
+## Notes on GBIF ##################################################################################################
 # This script starts with the downloaded list obtained via rgbif::name_usage(), so it assumes you have your required GBIF IDs.
 # It was written and tested for taxonomic information for tip labels of the Smith&Brown 2018 seed plant phylogeny. 
 
 
+#### SETUP #######################################################################################################
+# chose database, options are BIEN and GBIF
 library(data.table)
-
-
-#### CHOSE DATABASE ##############################################################################
-# options are BIEN and GBIF
-
-# GBIF requires download via name_usage() function from gbif package to get all relevant columns
-# script checks if required columns are present
 
 db <- "GBIF"
 
+data_folder_path <- "./data/" # depends on where your working directory is set
 
-#### GET DATA ####################################################################################
+# name input and output file names
+bien_input_filename <- "all_bien_occurrences_7cols_rm_na.csv"
+bien_output_filename <- "bien_input_vectorized4.rds"
+
+gbif_input_filename <- "gbif_jeppe.rds" # gbif_all.rds
+gbif_output_filename <- "common_format_jeppe.rds" # input_tip_labels_new_sript.rds
+
+
+#### GET DATA ###################################################################################################
 
 if(db=="BIEN"){
   
   #  Switch to chose data volume according to whether working on server locally
   if(getwd()=="/data_vol/melanie/BIEN_download"){
-    bien <- fread(file="all_bien_occurrences_7cols_rm_na.csv")
+    bien <- fread(file=bien_input_filename)
   }else{
     chunk_size <- 1000000
-    bien <- fread(file="../data/all_bien_occurrences_7cols_rm_na.csv", nrows=chunk_size)
+    bien <- fread(file=paste0(data_folder_path, bien_input_filename), nrows=chunk_size)
   }
 }
 
 if(db=="GBIF"){
   
-  gbif <- readRDS("../data/gbif_all.rds")
+  gbif <- readRDS(paste0(data_folder_path, gbif_input_filename))
 }
 
 
 
 
-#### BIEN PROCESSING #############################################################################
+#### BIEN PROCESSING #############################################################################################
 if(db=="BIEN"){
 
 # data check
@@ -198,13 +202,13 @@ bien_input$usable[ind] <- "no"
 
   bien_input$usable[bien_input$split_length %in% c(7,8)] <- "no"
   bien_input <- bien_input[-which(bien_input$usable=="no"),]
+
+
+saveRDS(bien_input, paste0(data_folder_path, bien_output_filename))
 }
 
-saveRDS(bien_input, "bien_input_vectorized4.rds")
 
-
-
-#### GBIF PROCESSING #############################################################################
+#### GBIF PROCESSING #############################################################################################
 if(db=="GBIF"){
   
 # data check and preparation
@@ -284,6 +288,13 @@ gbif.df$scientificName <- gsub(" s$| t \\&|,.*| borb$| aggr$", "", gbif.df$scien
 
 # remove space at end
 gbif.df$scientificName <- str_trim(gbif.df$scientificName)
+
+# add space before "×"
+gbif.df$scientificName <- gsub("×", "x ", gbif.df$scientificName)
+
+## remove double spaces 
+gbif.df$scientificName <- gsub("  ", " ", gbif.df$scientificName)
+
 gbif.df$split <- unlist(lapply(strsplit(gbif.df$scientificName, split = " "), length))
 
 
@@ -306,7 +317,7 @@ input <- data.frame(taxonID=gbif.df$taxonID,
 
 ## Cleaning
 # remove sp. species
-if(any(grepl("sp\\.", as.character(input$taxon_name)))){
+if(any(grepl(" sp\\.", as.character(input$taxon_name)))){
   input <- input[!grepl("sp\\.", as.character(input$taxon_name)),]
   table(grepl("sp\\.", as.character(input$taxon_name)))}
 
@@ -325,14 +336,16 @@ input$id <- c(1:nrow(input))
 split_list <- strsplit(as.character(input$taxon_name), split = " ")
 names(split_list) <- input$id
 
+# convert factor to characters
+input$taxon_name <- as.character(input$taxon_name)
+input$family <- as.character(input$family)
+input$author <- as.character(input$author)
+input$species <- as.character(input$species)
+input$genus <- as.character(input$genus)
+input$taxon_rank <- as.character(input$taxon_rank)
 
 
-
-
-
-
-
-# Vectorize + loop mix ###############################################################
+# Vectorize + loop mix ###############################################################################
 
 ## split length == 1
 ind <- which(input$split_length==1)
@@ -420,20 +433,51 @@ for(i in 1:length(ind)){
   }
 }
 
+
+## split length == 5
+ind <- which(input$split_length==5)
+for(i in 1:length(ind)){
+  if(split_list[[ind[i]]][2]=="x"){
+    input$genus[ind[i]] <- split_list[[ind[i]]][1]
+    input$species_hybrid[ind[i]] <- split_list[[ind[i]]][2]
+    input$species[ind[i]] <- split_list[[ind[i]]][3]
+    input$taxon_rank[ind[i]] <- split_list[[ind[i]]][4]
+    input$infra_name[ind[i]] <- split_list[[ind[i]]][5]
+  }
+  if(split_list[[ind[i]]][4]=="x"){
+    input$genus[ind[i]] <- split_list[[ind[i]]][1]
+    input$species_hybrid[ind[i]] <- split_list[[ind[i]]][4]
+    input$species[ind[i]] <- split_list[[ind[i]]][2]
+    input$taxon_rank[ind[i]] <- split_list[[ind[i]]][3]
+    input$infra_name[ind[i]] <- split_list[[ind[i]]][5]
+  }
+  if(split_list[[ind[i]]][3]=="x"){  # this is aiming at Dieffenbachia nitidipetiolada x d. oerstedii
+    input$usable[ind[i]] <- "no"
+  }
+  if(split_list[[ind[i]]][2]=="x" & split_list[[ind[i]]][4]=="x"){  # this is aiming at "Saxifraga x arendsii x granulata"
+    input$usable[ind[i]] <- "no"
+  }
+}
+
+
+
 # remove all unusable taxa
-input <- input[-which(input$usable=="no"),]
+if(length(which(input$usable=="no"))>0){
+  input <- input[-which(input$usable=="no"),]
+}
+
 
 
 
 ## STATS INCLUDED / NOT INCLUDED
 table(gbif.df$taxonID %in% input$taxonID)/nrow(gbif.df)
 
+saveRDS(input, paste0(data_folder_path, gbif_output_filename))
 
-saveRDS(input, "../data/input_tip_labels_new_sript.rds")
   
 }
 
 
 
-#### END ######
+#### END ######################################################################################
 
