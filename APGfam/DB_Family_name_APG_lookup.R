@@ -1,11 +1,9 @@
 rm(list=ls())
 library("tidyverse")
-library("taxonlookup")
+#library("taxonlookup")
 library("stringr")
 # devtools::install_github("bmewing/mgsub")
-
 ## current WCSP setup keeps everything in the WCSP except for Gigaspermaceae.
-
 ## current BIEN setup cleans out 26450 taxa (6.6%), including the following: 
 # "Rhodophyta" Red algae
 # "Chlorophyta" Green algae
@@ -20,17 +18,28 @@ library("stringr")
 # and 2 entries which are most likely errors: Cluisaceae + Hemionitidaceae, see code comments for details
 
 
+#### SETUP ###################################################################################
 
-# Choose database, possible values: WCSP, NCBI, BIEN, GBIF ###########################
-# You can chose more than 1 (e.g. c("BIEN", "NCBI")) 
-db <- "WCSP"
+# Choose database, possible values: WCSP, NCBI, BIEN, GBIF ###################################
+# You can chose more than 1 (e.g. c("BIEN", "NCBI", "GBIF")) 
+db <- "GBIF"
+
+data_folder_path <- "./data/" # depends on where your working directory is set
+
+## specify input file names:
+ncbi_input_filename <- "NCBI_old.csv"
+wcsp_input_filename <- "wcp_jun_20.rds"
+bien_input_filename <- "bien_input_vectorized3.rds"
+gbif_input_filename <- "common_format_jeppe.rds" # # input_tip_labels_new_sript.rds
+
+bryophyta <- "bryophyta.csv"
 
 
 
 
 
-# APG edits ######################################################################
-f.apg <- read.csv("./data/apgweb_parsed.csv", stringsAsFactors = F)
+# APG edits ###################################################################################
+f.apg <- read.csv(paste0(data_folder_path, "apgweb_parsed.csv"), stringsAsFactors = F)
 #grep("near_|fossil_", f.apg$Clade)
 
 # remove some clade names don't have a valida name ("near_XXX") or a fossil name ("fossil")
@@ -68,9 +77,9 @@ names(f.apg) <- c("family", "family.apg", "order")
 #write.csv(f.apg, "./results/apgweb_Spermatophyta_only_checked.csv", row.names = F, quote = F)
 
 
-
+# NCBI ###################################################################################
 if("NCBI" %in% db){
-  NCBI <- read.csv("../data/NCBI_old.csv", header=T, stringsAsFactors = F)
+  NCBI <- read.csv(paste0(data_folder_path, ncbi_input_filename), header=T, stringsAsFactors = F)
   
 
   #Ripogonaceae
@@ -85,7 +94,7 @@ if("NCBI" %in% db){
     arrange(family) %>% 
     unique()
   NCBI.apg <- left_join(NCBI.tmp, f.apg, by="family")
-  saveRDS(NCBI.apg, "./data/NCBI.apg.rds")
+  saveRDS(NCBI.apg, paste0(data_folder_path, ncbi_output_filename))
   write.csv(NCBI.apg, "./results/Spermatophyta_NCBI_APG_checked.csv", row.names = F, quote = F)
   # checklist <- NULL
   # for (i in NCBI.apg$ncbi_id[duplicated(NCBI.apg$ncbi_id)]){
@@ -96,8 +105,9 @@ if("NCBI" %in% db){
   # checklist <- checklist %>% arrange() %>% unique()  
 }
 
+# WCSP ###################################################################################
 if("WCSP" %in% db){
-  wcsp <- readRDS("./data/wcp_jun_20.rds")
+  wcsp <- readRDS(paste0(data_folder_path, wcsp_input_filename))
   
   #check for no match and fix
   
@@ -156,16 +166,17 @@ if("WCSP" %in% db){
   
   wcsp.apg <- left_join(wcsp1, f.apg, by="family")
   
-  saveRDS(wcsp.apg, "./data/WCSP.apg.rds")
+  saveRDS(wcsp.apg, paste0(data_folder_path, "apg_", wcsp_input_filename))
   #write.csv(wcsp.apg, "./results/Spermatophyta_WCSP_APG_checked.csv", row.names = F, quote = F)
   
 }
 
+# BIEN ######################################################################
 if("BIEN" %in% db){
-  bien <- readRDS("../data/bien_input_vectorized3.rds")
+  bien <- readRDS(paste0(data_folder_path, bien_input_filename))
   
   # remove Bryophyta
-  bry <- read.csv("../data/bryophyta.csv")
+  bry <- read.csv(paste0(data_folder_path, bryophyta))
   bryos <- as.character(bry[,1])
   bryos <- gsub(" ", "", bryos)
   bien <- bien[!bien$family %in% bryos,]
@@ -230,11 +241,12 @@ if("BIEN" %in% db){
   
   bien.apg <- left_join(bien, f.apg, by="family")
   
-  saveRDS(bien.apg, "../data/bien_input_vectorized3.apg.rds")
+  saveRDS(bien.apg, paste0(data_folder_path, "apg_", bien_input_filename))
 }  
 
+# GBIF #######################################################################################
 if("GBIF" %in% db){
-  gbif <- readRDS("../data/input_tip_labels.rds") #_new_sript.rds is the one built using GBIF names only
+  gbif <- readRDS(paste0(data_folder_path, gbif_input_filename)) #_new_sript.rds is the one built using GBIF names only
   
   (sort(fams <- setdiff(unique(gbif$family), unique(f.apg$family))))
   # manual research
@@ -248,18 +260,21 @@ if("GBIF" %in% db){
   
   gbif$family <- as.character(gbif$family)
   gbif$family[which(gbif$family=="Stixaceae")] <- "Stixidaceae"
-  gbif <- gbif[-which(gbif$family %in% c("Sphaerocystidaceae",
-                                   "Hookeriaceae",
-                                   "Cyclostigmataceae", 
-                                   "Ulotrichaceae",
-                                   "Hymenochaetaceae")),]
+  todrop <-  c("Sphaerocystidaceae",
+               "Hookeriaceae",
+               "Cyclostigmataceae", 
+               "Ulotrichaceae",
+               "Hymenochaetaceae")
+  if(length(which(gbif$family %in% todrop))>0){
+    gbif <- gbif[-which(gbif$family %in% todrop),]
+  }
   
   setdiff(unique(gbif$family), unique(f.apg$family))
   # should just be NAs for missing family information
   
   gbif.apg <- left_join(gbif, f.apg, by="family")
   
-  saveRDS(gbif.apg, "../data/input_tip_labels_apg.rds")
+  saveRDS(gbif.apg, paste0(data_folder_path, "apg_", gbif_input_filename))
 }
   
   
