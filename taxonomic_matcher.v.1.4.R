@@ -15,7 +15,7 @@
   ncbi_input_filename <- "apg_NCBI_old.csv"
   wcsp_input_filename <- "apg_wcp_jun_20.rds"
   bien_input_filename <- "apg_bien_input_vectorized3.rds"
-  gbif_input_filename <- "apg_common_format_jeppe.rds"
+  gbif_input_filename <- "apg_input_tip_labels_new_sript.rds"
   
   # output
   unsolved_file <- paste0("unsolved_", DB.name , ".rds")
