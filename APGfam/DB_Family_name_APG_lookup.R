@@ -30,7 +30,7 @@ data_folder_path <- "./data/" # depends on where your working directory is set
 ncbi_input_filename <- "NCBI_old.csv"
 wcsp_input_filename <- "wcp_jun_20.rds"
 bien_input_filename <- "bien_input_vectorized3.rds"
-gbif_input_filename <- "common_format_jeppe.rds" # # input_tip_labels_new_sript.rds
+gbif_input_filename <- "input_tip_labels_new_sript.rds" # # input_tip_labels_new_sript.rds
 
 bryophyta <- "bryophyta.csv"
 
