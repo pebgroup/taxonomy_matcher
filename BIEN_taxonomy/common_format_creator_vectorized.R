@@ -26,8 +26,8 @@ data_folder_path <- "./data/" # depends on where your working directory is set
 bien_input_filename <- "all_bien_occurrences_7cols_rm_na.csv"
 bien_output_filename <- "bien_input_vectorized4.rds"
 
-gbif_input_filename <- "gbif_jeppe.rds" # gbif_all.rds
-gbif_output_filename <- "common_format_jeppe.rds" # input_tip_labels_new_sript.rds
+gbif_input_filename <- "gbif_all.rds" # gbif_all.rds
+gbif_output_filename <- "input_tip_labels_new_sript.rds" # input_tip_labels_new_sript.rds
 
 
 #### GET DATA ###################################################################################################
@@ -234,7 +234,7 @@ gbif.df <- data.frame(taxonID = sapply(gbif, "[[", "key"),
                       family = sapply(gbif, "[[", "family"),
                       genus = sapply(gbif, "[[", "genus"),
                       species = sapply(gbif, "[[", "species"))
-#rm(gbif)
+rm(gbif)
 
 # remove authors from scientific name
 library(stringr)
@@ -317,6 +317,7 @@ input <- data.frame(taxonID=gbif.df$taxonID,
 
 ## Cleaning
 # remove sp. species
+length(grep(" sp\\.", as.character(input$taxon_name)))
 if(any(grepl(" sp\\.", as.character(input$taxon_name)))){
   input <- input[!grepl("sp\\.", as.character(input$taxon_name)),]
   table(grepl("sp\\.", as.character(input$taxon_name)))}
@@ -354,17 +355,7 @@ input$usable[input$split_length==1] <- "no"
 ## split length == 2
 ind <- which(input$split_length==2)
 
-# # get authors
-# input$author[ind] <- gsub("^[A-Z][a-z| ]+", "", input[ind, "taxon_name"])
-
-# # get the rest
-# input$genus[ind] <- sapply(split_list[ind], "[[", 1)
-# input$species[ind] <- sapply(split_list[ind], "[[", 2)
-# input$taxon_rank[ind] <- "species"
-
-ind.hyb <- which(grepl("^×", input$taxon_name))
-#ind.hyb <- which(grepl("^×", input$genus))
-#input$genus[ind.hyb] <- gsub("^×", "", sapply(split_list[ind.hyb], "[[", 1))
+ind.hyb <- which(grepl("^x ", input$taxon_name[ind]))
 input$genus_hybrid[ind.hyb] <- "x"
 input$usable[ind.hyb] <- "no"
 
@@ -372,28 +363,19 @@ input$usable[ind.hyb] <- "no"
 ## split length == 3
 ind <- which(input$split_length==3)
 for(i in 1:length(ind)){
-  if(split_list[[ind[i]]][2]=="sp."){
-    #    input$genus[ind[i]] <- split_list[[ind[i]]][1]
-    #    input$species[ind[i]] <- split_list[[ind[i]]][2]
-    #    input$taxon_rank[ind[i]] <- "species"
-    input$usable[ind[i]] <- "no"
-    
+  if(split_list[[ind[i]]][1]=="x"){
+    input$genus_hybrid[ind[i]] <- "x"
+    input$genus[ind[i]] <- split_list[[ind[i]]][[2]]
   }
-  if(split_list[[ind[i]]][2]=="x"){ # does not occur but you never know
+  if(split_list[[ind[i]]][2]=="x"){ # does not occur but you never know...
     if(grepl("[A-Z]",split_list[[ind[i]]][3])){
       input$genus_hybrid[ind[i]] <- "x"
       input$usable[ind[i]] <- "no"
     }else{
       input$species_hybrid[ind[i]] <- "x"
-      #      input$genus[ind[i]] <- split_list[[ind[i]]][[1]]
-      #      input$species[ind[i]] <- split_list[[ind[i]]][[3]]
-      #      input$taxon_rank[ind[i]] <- "species"
     }
   }
   if(split_list[[ind[i]]][1]!="x" & split_list[[ind[i]]][2]!="x" & !grepl("[A-Z]",split_list[[ind[i]]][3])){ 
-    #    input$genus[ind[i]] <- split_list[[ind[i]]][[1]]
-    #    input$species[ind[i]] <- split_list[[ind[i]]][[2]]
-    #    input$taxon_rank[ind[i]] <- NA
     input$infra_name[ind[i]] <- split_list[[ind[i]]][[3]]
   }
   if(split_list[[ind[i]]][2]!="x" & grepl("[a-z]",split_list[[ind[i]]][3])){
@@ -402,9 +384,9 @@ for(i in 1:length(ind)){
     #    input$taxon_rank[ind[i]] <- "species"
     #input$usable[ind[i]] <- "no"
   }
-  if(grepl("sp\\.", split_list[[ind[i]]][[2]])){
-    input$usable[ind[i]] <- "no"
-  }
+#  if(grepl("sp\\.", split_list[[ind[i]]][[2]])){
+#    input$usable[ind[i]] <- "no"
+#  }
 }
 
 ## split length == 4
@@ -413,20 +395,20 @@ for(i in 1:length(ind)){
   if(split_list[[ind[i]]][[1]]=="x" & split_list[[ind[i]]][[3]]=="x"){
     input$genus_hybrid[ind[i]] <- "x"
     input$species_hybrid[ind[i]] <- "x"
-    input$genus[ind[i]] <- split_list[[ind[i]]][[2]]
-    input$species[ind[i]] <- split_list[[ind[i]]][[4]]
-    input$taxon_rank[ind[i]] <- "species"
+    #input$genus[ind[i]] <- split_list[[ind[i]]][[2]]
+    #input$species[ind[i]] <- split_list[[ind[i]]][[4]]
+    #input$taxon_rank[ind[i]] <- "species"
   }
   if(split_list[[ind[i]]][[1]]!="x" & split_list[[ind[i]]][[3]]=="x"){
     input$species_hybrid[ind[i]] <- "x"
-    input$genus[ind[i]] <- split_list[[ind[i]]][[1]]
-    input$species[ind[i]] <- split_list[[ind[i]]][[2]]
+    #input$genus[ind[i]] <- split_list[[ind[i]]][[1]]
+    #input$species[ind[i]] <- split_list[[ind[i]]][[2]]
     #    input$infra_name[ind[i]] <- split_list[[ind[i]]][[4]]
-    input$taxon_rank[ind[i]] <- "species"
+    #input$taxon_rank[ind[i]] <- "species"
   }
   if(split_list[[ind[i]]][[1]]!="x" & split_list[[ind[i]]][[3]]!="x"){
-    input$genus[ind[i]] <- split_list[[ind[i]]][[1]]
-    input$species[ind[i]] <- split_list[[ind[i]]][[2]]
+    #input$genus[ind[i]] <- split_list[[ind[i]]][[1]]
+    #input$species[ind[i]] <- split_list[[ind[i]]][[2]]
     #input$taxon_rank[ind[i]] <- split_list[[ind[i]]][[3]]
     input$infra_name[ind[i]] <- split_list[[ind[i]]][[4]]
     if(split_list[[ind[i]]][[3]]==""){input$taxon_rank[ind[i]] <- NA}
@@ -436,29 +418,30 @@ for(i in 1:length(ind)){
 
 ## split length == 5
 ind <- which(input$split_length==5)
-for(i in 1:length(ind)){
-  if(split_list[[ind[i]]][2]=="x"){
-    input$genus[ind[i]] <- split_list[[ind[i]]][1]
-    input$species_hybrid[ind[i]] <- split_list[[ind[i]]][2]
-    input$species[ind[i]] <- split_list[[ind[i]]][3]
-    input$taxon_rank[ind[i]] <- split_list[[ind[i]]][4]
-    input$infra_name[ind[i]] <- split_list[[ind[i]]][5]
-  }
-  if(split_list[[ind[i]]][4]=="x"){
-    input$genus[ind[i]] <- split_list[[ind[i]]][1]
-    input$species_hybrid[ind[i]] <- split_list[[ind[i]]][4]
-    input$species[ind[i]] <- split_list[[ind[i]]][2]
-    input$taxon_rank[ind[i]] <- split_list[[ind[i]]][3]
-    input$infra_name[ind[i]] <- split_list[[ind[i]]][5]
-  }
-  if(split_list[[ind[i]]][3]=="x"){  # this is aiming at Dieffenbachia nitidipetiolada x d. oerstedii
-    input$usable[ind[i]] <- "no"
-  }
-  if(split_list[[ind[i]]][2]=="x" & split_list[[ind[i]]][4]=="x"){  # this is aiming at "Saxifraga x arendsii x granulata"
-    input$usable[ind[i]] <- "no"
+if(length(ind)>0){
+  for(i in 1:length(ind)){
+    if(split_list[[ind[i]]][2]=="x"){
+      #input$genus[ind[i]] <- split_list[[ind[i]]][1]
+      input$species_hybrid[ind[i]] <- split_list[[ind[i]]][2]
+      #input$species[ind[i]] <- split_list[[ind[i]]][3]
+      input$taxon_rank[ind[i]] <- split_list[[ind[i]]][4]
+      input$infra_name[ind[i]] <- split_list[[ind[i]]][5]
+    }
+    if(split_list[[ind[i]]][4]=="x"){
+      #input$genus[ind[i]] <- split_list[[ind[i]]][1]
+      input$species_hybrid[ind[i]] <- split_list[[ind[i]]][4]
+      #input$species[ind[i]] <- split_list[[ind[i]]][2]
+      input$taxon_rank[ind[i]] <- split_list[[ind[i]]][3]
+      input$infra_name[ind[i]] <- split_list[[ind[i]]][5]
+    }
+    if(split_list[[ind[i]]][3]=="x"){  # this is aiming at Dieffenbachia nitidipetiolada x d. oerstedii
+      input$usable[ind[i]] <- "no"
+    }
+    if(split_list[[ind[i]]][2]=="x" & split_list[[ind[i]]][4]=="x"){  # this is aiming at "Saxifraga x arendsii x granulata"
+      input$usable[ind[i]] <- "no"
+    }
   }
 }
-
 
 
 # remove all unusable taxa
