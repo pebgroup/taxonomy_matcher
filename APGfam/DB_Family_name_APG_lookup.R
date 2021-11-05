@@ -1,36 +1,23 @@
 rm(list=ls())
 library("tidyverse")
-#library("taxonlookup")
 library("stringr")
-# devtools::install_github("bmewing/mgsub")
-## current WCSP setup keeps everything in the WCSP except for Gigaspermaceae.
-## current BIEN setup cleans out 26450 taxa (6.6%), including the following: 
-# "Rhodophyta" Red algae
-# "Chlorophyta" Green algae
-# "Marchantiophyta" liverworts
-# "Bryophyta" hornworts
-# "Ascomycota" fungus
-# "Cyanobacteria" ...
-# "Basidiomycota" fungus
-# "Ochrophyta"  yellow-green algae
-# "Anthocerotophyta" hornworts
-# "Euglenozoa"  thats not even a plant
-# and 2 entries which are most likely errors: Cluisaceae + Hemionitidaceae, see code comments for details
 
 
-#### SETUP ###################################################################################
+#### SETUP ################################################################
 
-# Choose database, possible values: WCSP, NCBI, BIEN, GBIF ###################################
-# You can chose more than 1 (e.g. c("BIEN", "NCBI", "GBIF")) 
-db <- "GBIF"
+# Choose data source ------------------------------------------------------
+# possible values: WCP, NCBI, BIEN, GBIF, more than 1 is possible (e.g.
+# c("BIEN", "NCBI", "GBIF"))
 
-data_folder_path <- "./data/" # depends on where your working directory is set
+db <- "BIEN"
+
+data_folder_path <- "../data/" 
 
 ## specify input file names:
 ncbi_input_filename <- "NCBI_old.csv"
-wcsp_input_filename <- "wcp_jun_20.rds"
-bien_input_filename <- "bien_input_vectorized3.rds"
-gbif_input_filename <- "input_tip_labels_new_sript.rds" # # input_tip_labels_new_sript.rds
+wcp_input_filename <- "wcp_jul_21.rds"
+bien_input_filename <- "bien_common_format_Sep21_download_Jan2020.rds"
+gbif_input_filename <- "input_tip_labels_new_sript.rds"
 
 bryophyta <- "bryophyta.csv"
 
@@ -38,27 +25,22 @@ bryophyta <- "bryophyta.csv"
 
 
 
-# APG edits ###################################################################################
+# APG edits ################################################################
 f.apg <- read.csv(paste0(data_folder_path, "apgweb_parsed.csv"), stringsAsFactors = F)
-#grep("near_|fossil_", f.apg$Clade)
 
-# remove some clade names don't have a valida name ("near_XXX") or a fossil name ("fossil")
-
+# remove clades with invalid or fossil names ("near_XXX", "fossil")
 f.apg <- f.apg %>% 
   filter(!(str_detect(Clade, "near_") | str_detect(Clade, "fossil"))) %>% 
   select(Syn_Fam, Acc_Fam, Clade)
 
-# Intresting thing: "Adoxaceae" is treated as "syn" name of "Viburnaceae" in APWeb, which is conflict with APG IV; need to swap
-
-# > f.apg[grep("Adoxaceae", f.apg$Syn_Fam),]
-# Syn_Fam     Acc_Fam      Clade
-# 25 Adoxaceae Viburnaceae Dipsacales
+# "Adoxaceae" is treated as "syn" name of "Viburnaceae" in APWeb, which is
+# conflict with APG IV; need to swap:
 f.apg[grep("Adoxaceae", f.apg$Syn_Fam),]$Acc_Fam <- "Adoxaceae"
 f.apg[grep("Viburnaceae", f.apg$Syn_Fam),]$Acc_Fam <- "Adoxaceae"
 
-# also one more family names "Rhipogonaceae" was not recorded in APWeb
-# so Manual added in "Rhipogonaceae" == "Ripogonaceae"  
-# manually adding Osmundaceae as its accepted according to http://powo.science.kew.org/taxon/urn:lsid:ipni.org:names:77126775-1
+# add family Rhipogonaceae, missing in APWeb download (is online by now)
+# add family Osmundaceae,  as its accepted according to
+# http://powo.science.kew.org/taxon/urn:lsid:ipni.org:names:77126775-1
 
 f.apg <- rbind.data.frame(f.apg, c("Rhipogonaceae", "Ripogonaceae", "Liliales"),
                           c("Ripogonaceae", "Ripogonaceae", "Liliales"),
@@ -71,104 +53,72 @@ f.apg$Syn_Fam <- gsub("Isoëtaceae", "Isoetaceae", f.apg$Syn_Fam)
 f.apg$Acc_Fam <- gsub("Isoëtaceae", "Isoetaceae", f.apg$Acc_Fam)
 
 # caution serval invalid strings in fern clade names (check before do)
-# grep("_", f.apg$Clade)
-#f.apg <- f.apg %>% filter(!(str_detect(Clade, "_"))) # uncomment this line if want to remove ferns
 names(f.apg) <- c("family", "family.apg", "order")
-#write.csv(f.apg, "./results/apgweb_Spermatophyta_only_checked.csv", row.names = F, quote = F)
 
 
-# NCBI ###################################################################################
+# NCBI #####################################################################
 if("NCBI" %in% db){
-  NCBI <- read.csv(paste0(data_folder_path, ncbi_input_filename), header=T, stringsAsFactors = F)
+  NCBI <- read.csv(paste0(data_folder_path, ncbi_input_filename), stringsAsFactors = F)
   
 
   #Ripogonaceae
   f.ncbi <- NCBI %>% select(family) %>% unique()
   fam.apg <-f.apg%>% select(family) %>% unique()
   
-  setdiff(f.ncbi$family, fam.apg$family)
-  # should be empty.   # [1] "Ripogonaceae" has been acounted for in line 33
+  setdiff(f.ncbi$family, fam.apg$family) # should be empty
 
   NCBI.tmp <- NCBI %>% 
     select(-order) %>% 
     arrange(family) %>% 
     unique()
+  
   NCBI.apg <- left_join(NCBI.tmp, f.apg, by="family")
-  saveRDS(NCBI.apg, paste0(data_folder_path, ncbi_output_filename))
+  
+  #saveRDS(NCBI.apg, paste0(data_folder_path, ncbi_output_filename))
   write.csv(NCBI.apg, "./results/Spermatophyta_NCBI_APG_checked.csv", row.names = F, quote = F)
-  # checklist <- NULL
-  # for (i in NCBI.apg$ncbi_id[duplicated(NCBI.apg$ncbi_id)]){
-  #   dd <- NCBI.apg[NCBI.apg$ncbi_id==i,] %>% select(family, family.apg, order)
-  #   checklist <- rbind.data.frame(checklist, dd)
-  # }
-  # 
-  # checklist <- checklist %>% arrange() %>% unique()  
-}
+#   checklist <- NULL
+#   for (i in NCBI.apg$ncbi_id[duplicated(NCBI.apg$ncbi_id)]){
+#     dd <- NCBI.apg[NCBI.apg$ncbi_id==i,] %>% select(family, family.apg, order)
+#     checklist <- rbind.data.frame(checklist, dd)
+#   }
+# 
+#   checklist <- checklist %>% arrange() %>% unique()
+# }
 
-# WCSP ###################################################################################
-if("WCSP" %in% db){
-  wcsp <- readRDS(paste0(data_folder_path, wcsp_input_filename))
+# WCP ####################################################################
+if("WCP" %in% db){
+  WCP <- readRDS(paste0(data_folder_path, wcp_input_filename))
   
-  #check for no match and fix
+  # check if all families are represented and add if necessary manually
+  setdiff(unique(WCP$family), unique(f.apg$family))
+  # [1] "Incertae_sedis"  "Pseudotubulare"  "Gigaspermaceae" "Tiganophytaceae"
   
-  setdiff(unique(wcsp$family), unique(f.apg$family))
-  # Should be:  [1] "Byxaceae"       "Gigaspermaceae" "Incertae_sedis"    "Oligomeris"     "Schoberia"      "v" 
-
-  ########################################################################
-  # caution: several invalid strings in fern clade names (check before do)#
-  ########################################################################
-  # #ferns families
-  # "Aspleniaceae"
-  # "Osmundaceae" 
-  # "Polypodiaceae"
-  # "Isoetaceae"
-  # "v"=="Ophioglossum"="1142939-az"
-  # "Ophioglossaceae" 
-  # "Schizaeaceae"
-  # #mosse remove
-  # "Gigaspermaceae"
-  #Incertae_sedis
-  # > unique(wcsp[grep("Incertae_sedis", wcsp$family),]$genus)
-  # [1] "Angeja"      "Anonymos"    "Cipum"       "Euphrona"    "Ivonia"      "Pouslowia"  
-  # [7] "Theodoricea" "Thuraria"    "Urceola"
+  # Pseudotubulare = not a family name, Synonym entry
+  # Gigaspermaceae = moss family
+  # Tiganophytaceae = rosid
+  # Incertae_sedis:
+  unique(WCP[grep("Incertae_sedis", WCP$family),]$genus)
+  # [1] "Cipum"       "Anonymos"    "Theodoricea" "Thuraria"    "Urceola"     "Pouslowia"   "Euphrona"    "Ivonia"
   
-  # remove mosses & incertae_sedis uncomment this line below if want to keep ferns
+  # remove mosses & incertae_sedis. uncomment this line below if want to keep ferns
   ## Gigaspermatacea: 2 cases, both synonyms (415628-az, 411899-az)
-  ## Invertae_sedis: 20 taxa, all synonyms or unplaced. could be matched as synonym when ignoring the family (step3), so keep them
+  ## Invertae_sedis: 20 taxa, all synonyms or unplaced. Could be matched as synonym when ignoring the family (step3), so keep them
   moss.inc <- c("Gigaspermaceae")
-  wcsp1 <- wcsp %>% 
+  WCP1 <- WCP %>% 
     filter(!(family %in% moss.inc)) 
-#    filter(accepted_plant_name_id!="1142939-az") #what`s wrong with this taxon? its an accepted Schizaeaceae fern species`
+  #    filter(accepted_plant_name_id!="1142939-az") #what`s wrong with this taxon? its an accepted Schizaeaceae fern species`
   
   #comment line below if want to keep ferns and uncomment the lines above
   #ferns.moss.inc <- c("Aspleniaceae", "Osmundaceae", "Polypodiaceae", "Isoetaceae", "Ophioglossaceae", "Schizaeaceae", "Gigaspermaceae", "Incertae_sedis")
-  #wcsp1 <- wcsp %>% filter(!(family %in% ferns.moss.inc)) %>% filter(accepted_plant_name_id!="1142939-az")
+  #WCP1 <- WCP %>% filter(!(family %in% ferns.moss.inc)) %>% filter(accepted_plant_name_id!="1142939-az")
   
-  #rename
-  # "Oligomeris" "Resedaceae", "1012613-az"
-  # 
-  # "Schoberia" "Amaranthaceae"
-  
-  # > unique(wcsp[grep("869344-az", wcsp$accepted_plant_name_id),]$family)
-  # [1] "Buxaceae" "Byxaceae"
-  
-  # wcsp1$family <- mgsub::mgsub(wcsp1$family, c("Byxaceae", "Oligomeris", "Schoberia"), c("Buxaceae", "Resedaceae", "Amaranthaceae"))
-  # correct famlies names
-  wcsp1$family <- gsub("Byxaceae", "Buxaceae", wcsp1$family)
-  wcsp1$family <- gsub("Oligomeris", "Resedaceae", wcsp1$family)
-  wcsp1$family <- gsub("Schoberia", "Amaranthaceae", wcsp1$family)
-  
-  # wcsp2 <- wcsp1 %>% filter(accepted_plant_name_id!="1142939-az")
-  setdiff(unique(wcsp1$family), unique(f.apg$family))
+  setdiff(unique(WCP1$family), unique(f.apg$family))
   
   # manual fix
-  wcsp1$family[wcsp1$family=="v"] <- "Ophioglossaceae"
+  WCP1 <- WCP1[!WCP1$family=="Pseudotubulare",]
+  WCP.apg <- left_join(WCP1, f.apg, by="family")
   
-  wcsp.apg <- left_join(wcsp1, f.apg, by="family")
-  
-  saveRDS(wcsp.apg, paste0(data_folder_path, "apg_", wcsp_input_filename))
-  #write.csv(wcsp.apg, "./results/Spermatophyta_WCSP_APG_checked.csv", row.names = F, quote = F)
-  
+  saveRDS(WCP.apg, paste0(data_folder_path, "apg_", WCP_input_filename))
 }
 
 # BIEN ######################################################################
@@ -183,8 +133,6 @@ if("BIEN" %in% db){
   
   missing <- setdiff(unique(bien$family), unique(f.apg$family))
 
-  #View(bien[bien$family %in% missing,])
-  # 957 taxa, plenty of green algae
   library(rgbif)
   
   alg.list <- list()
@@ -199,17 +147,10 @@ if("BIEN" %in% db){
   phylum[l] <- NA
   phylum <- unlist(phylum)
   unique(phylum)
-  # "Rhodophyta" Red algae
-  # "Chlorophyta" Green algae
   # "Marchantiophyta" liverworts
   # "Bryophyta" hornworts
-  # "Ascomycota" fungus
   # "Tracheophyta" vascular plant
-  # "Cyanobacteria" ...
-  # "Basidiomycota" fungus
-  # "Ochrophyta"  yellow-green algae
-  # "Anthocerotophyta" hornworts
-  # "Euglenozoa"  thats not even a plant
+
   phylum <- data.frame(missing, phylum)
   phylum$phylum <- as.character(phylum$phylum)
   phylum$phylum[is.na(phylum$phylum)] <- "not defined"
@@ -224,13 +165,16 @@ if("BIEN" %in% db){
   bien_sub <- bien[which(bien$phylum=="Tracheophyta"),]
   nrow(bien_sub)
   unique(bien_sub$family)
-  # [1] "Plagiogyriaceae"   "Cluisaceae"        "Hemionitidaceae"   "Arthropteridaceae" "Xanthoceraceae"
+  # [1] "Plagiogyriaceae"   "Cluisaceae"  "Arthropteridaceae" "Xanthoceraceae"
   # Plagiogyriaceae is an accepted fern family
   # Cluisaceae has one genus named Guttiferae which is not on IPNI: remove
-  # Hemionitidaceae, same names as the genus it belongs to, wrong entry: remove
   # Arthropteridaceae = fern, IPNI, GBIF says synonym of Tectariaceae, keep it like this for now
   # Xanthoceraceae = typo of Xanthoceratceae (missing t) which is in f.apg
-  bien <- bien[-which(bien$family %in% c("Cluisaceae", "Hemionitidaceae")),]
+  rem <- c("Cluisaceae")
+  if(any(bien$family %in% rem)){
+    bien <- bien[-which(bien$family %in% rem),]    
+  }
+  bien$family <- as.character(bien$family)
   bien$family[which(bien$family=="Xanthoceraceae")] <- "Xanthoceratceae"
 
   # add Plagiogyriaceae and Arthropteridaceae to the f.apg file 
@@ -246,10 +190,10 @@ if("BIEN" %in% db){
 
 # GBIF #######################################################################################
 if("GBIF" %in% db){
-  gbif <- readRDS(paste0(data_folder_path, gbif_input_filename)) #_new_sript.rds is the one built using GBIF names only
+  gbif <- readRDS(paste0(data_folder_path, gbif_input_filename)) 
   
   (sort(fams <- setdiff(unique(gbif$family), unique(f.apg$family))))
-  # manual research
+  # manual research:
   # Cyclostigmataceae: source = PBDB, probably doubtful: remove
   # Hookeriaceae = moss: Elharveya visicularioides
   # Hymenochaetaceae = fungus, remove
