@@ -98,19 +98,23 @@ if("WCP" %in% db){
   # Tiganophytaceae = rosid
   # Incertae_sedis:
   unique(WCP[grep("Incertae_sedis", WCP$family),]$genus)
-  # [1] "Cipum"       "Anonymos"    "Theodoricea" "Thuraria"    "Urceola"     "Pouslowia"   "Euphrona"    "Ivonia"
+  # [1] "Cipum"       "Anonymos"    "Theodoricea" "Thuraria"    "Urceola"
+  # "Pouslowia"   "Euphrona"    "Ivonia"
   
-  # remove mosses & incertae_sedis. uncomment this line below if want to keep ferns
-  ## Gigaspermatacea: 2 cases, both synonyms (415628-az, 411899-az)
-  ## Invertae_sedis: 20 taxa, all synonyms or unplaced. Could be matched as synonym when ignoring the family (step3), so keep them
+  #remove mosses & incertae_sedis. uncomment this line below if want to keep
+  #ferns # Gigaspermatacea: 2 cases, both synonyms (415628-az, 411899-az) #
+  #Invertae_sedis: 20 taxa, all synonyms or unplaced. Could be matched as
+  #synonym when ignoring the family (step3), so keep them
   moss.inc <- c("Gigaspermaceae")
   WCP1 <- WCP %>% 
     filter(!(family %in% moss.inc)) 
-  #    filter(accepted_plant_name_id!="1142939-az") #what`s wrong with this taxon? its an accepted Schizaeaceae fern species`
   
   #comment line below if want to keep ferns and uncomment the lines above
-  #ferns.moss.inc <- c("Aspleniaceae", "Osmundaceae", "Polypodiaceae", "Isoetaceae", "Ophioglossaceae", "Schizaeaceae", "Gigaspermaceae", "Incertae_sedis")
-  #WCP1 <- WCP %>% filter(!(family %in% ferns.moss.inc)) %>% filter(accepted_plant_name_id!="1142939-az")
+  #ferns.moss.inc <- c("Aspleniaceae", "Osmundaceae", "Polypodiaceae", 
+  #"Isoetaceae", "Ophioglossaceae", "Schizaeaceae", "Gigaspermaceae", "Incertae_sedis")
+  #WCP1 <- WCP %>% 
+  #filter(!(family %in% ferns.moss.inc)) %>% 
+  #filter(accepted_plant_name_id!="1142939-az")
   
   setdiff(unique(WCP1$family), unique(f.apg$family))
   
@@ -168,7 +172,7 @@ if("BIEN" %in% db){
   # [1] "Plagiogyriaceae"   "Cluisaceae"  "Arthropteridaceae" "Xanthoceraceae"
   # Plagiogyriaceae is an accepted fern family
   # Cluisaceae has one genus named Guttiferae which is not on IPNI: remove
-  # Arthropteridaceae = fern, IPNI, GBIF says synonym of Tectariaceae, keep it like this for now
+  # Arthropteridaceae = fern, IPNI, GBIF says synonym of Tectariaceae: keep 
   # Xanthoceraceae = typo of Xanthoceratceae (missing t) which is in f.apg
   rem <- c("Cluisaceae")
   if(any(bien$family %in% rem)){
@@ -188,7 +192,7 @@ if("BIEN" %in% db){
   saveRDS(bien.apg, paste0(data_folder_path, "apg_", bien_input_filename))
 }  
 
-# GBIF #######################################################################################
+# GBIF ######################################################################
 if("GBIF" %in% db){
   gbif <- readRDS(paste0(data_folder_path, gbif_input_filename)) 
   
@@ -197,9 +201,9 @@ if("GBIF" %in% db){
   # Cyclostigmataceae: source = PBDB, probably doubtful: remove
   # Hookeriaceae = moss: Elharveya visicularioides
   # Hymenochaetaceae = fungus, remove
-  # Sphaerocystidaceae = green algea, should not be in the tree: Planochloris pyrenoidifera
+  # Sphaerocystidaceae = green algea, should not be here: Planochloris pyrenoidifera
   # Stixaceae = typo of Stixidaceae (included in APG) --> change family name manually here 
-  # Ulotrichaceae = green algae Hormidium ... 181911
+  # Ulotrichaceae = green algae Hormidium 
 
   
   gbif$family <- as.character(gbif$family)
