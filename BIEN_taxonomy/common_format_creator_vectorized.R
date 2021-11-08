@@ -1,47 +1,47 @@
-## Script to build a common format to feed into the taxonomy matcher ##############################################
-# Processed databases are BIEN and GBIF. 
+## Script to build a common format to feed into the taxonomy matcher ##########
+
+# Tested for BIEN and GBIF data 
 # Each database has it`s own format, requiring partly individual treatment
 
-## Computational requirements #####################################################################################
-# BIEN data requires >8 GB RAM, runs on a 128GB machine. Always test with local subset!
+## Computational requirements #################################################
+# BIEN data requires >8 GB RAM, runs on a 128GB machine. Always test with local
+# subset!
 
-## Notes on BIEN ##################################################################################################
-# BIEN download data requires following columns: # scrubbed_taxon_name_no_author, scrubbed_family, scrubbed_author.
-# We SQL-queried the BIEN database via BIEN:::.BIEN_sql()
+## Notes on BIEN ##############################################################
+# BIEN download data requires following columns: #
+# scrubbed_taxon_name_no_author, scrubbed_family, scrubbed_author. We
+# SQL-queried the BIEN database via BIEN:::.BIEN_sql()
 
-## Notes on GBIF ##################################################################################################
-# This script starts with the downloaded list obtained via rgbif::name_usage(), so it assumes you have your required GBIF IDs.
-# It was written and tested for taxonomic information for tip labels of the Smith&Brown 2018 seed plant phylogeny. 
+## Notes on GBIF ##############################################################
+# This script starts with the downloaded list as obtained with
+# rgbif::name_usage(), so it assumes you have your required GBIF IDs.
 
 
-#### SETUP #######################################################################################################
+#### START ####################################################################
 # chose database, options are BIEN and GBIF
 library(data.table)
 
-db <- "GBIF"
+db <- "BIEN"
 
-data_folder_path <- "./data/" # depends on where your working directory is set
+data_folder_path <- "../data/" # depends on where your working directory is set
 
 # name input and output file names
-bien_input_filename <- "all_bien_occurrences_7cols_rm_na.csv"
-bien_output_filename <- "bien_input_vectorized4.rds"
+bien_input_filename <- "bien_occurrences_8cols_filtered_rm_na_no_centroids.rds"
+bien_output_filename <- "bien_common_format_no_centroids.rds"
 
-gbif_input_filename <- "gbif_all.rds" # gbif_all.rds
+gbif_input_filename <- "gbif_all.rds"
 gbif_output_filename <- "input_tip_labels_new_sript.rds" # input_tip_labels_new_sript.rds
 
 
-#### GET DATA ###################################################################################################
+#### GET DATA #################################################################
 
 if(db=="BIEN"){
   
-  #  Switch to chose data volume according to whether working on server locally
-  if(getwd()=="/data_vol/melanie/BIEN_download"){
-    bien <- fread(file=bien_input_filename)
-  }else{
-    chunk_size <- 1000000
-    bien <- fread(file=paste0(data_folder_path, bien_input_filename), nrows=chunk_size)
-  }
-}
+#   #  Switch to chose data volume according to whether working on server locally
+#     chunk_size <- 1000000
+#     bien <- fread(file=paste0(data_folder_path, bien_input_filename), nrows=chunk_size)
+  bien <- readRDS(paste0(data_folder_path, bien_input_filename))
+  
 
 if(db=="GBIF"){
   
@@ -51,7 +51,7 @@ if(db=="GBIF"){
 
 
 
-#### BIEN PROCESSING #############################################################################################
+#### BIEN PROCESSING ##########################################################
 if(db=="BIEN"){
 
 # data check
@@ -61,14 +61,16 @@ if(all(required %in% names(bien))){
 }else{stop("Required information is missing! Check your download")}
 
 
-# clean data
-bien <- bien[!abs(bien$latitude)>90,] # remove species with impossible coordinates
-bien <- bien[!abs(bien$longitude)>180,] # remove species with impossible coordinates
+# remove occurrences with impossible coordinates
+bien <- bien[!abs(bien$latitude)>90,] 
+bien <- bien[!abs(bien$longitude)>180,] 
 
 
 # create unique taxon ID that contains all possible information:
 bien$taxon_author_ID <- paste(bien$scrubbed_taxon_name_no_author, bien$scrubbed_author)
 bien_sub <- bien[!duplicated(bien[,"taxon_author_ID"]),]
+
+rm(bien) # Clean workspace
 
 # set up common format
 split_length <- unlist(lapply(strsplit(as.character(bien_sub$scrubbed_taxon_name_no_author), split = " "), length))
@@ -91,8 +93,6 @@ bien_input <- data.frame(scrubbed_taxon_name_no_author=bien_sub$scrubbed_taxon_n
 bien_input <- bien_input[order(bien_input$split_length),]
 bien_input$id <- c(1:nrow(bien_input))
 
-#id_name_connect <- bien_input[,c(bien_input$taxon_author_ID, bien_input$id)]
-#saveRDS()
 
 split_list <- strsplit(as.character(bien_input$scrubbed_taxon_name_no_author), split = " ")
 names(split_list) <- bien_input$id
@@ -171,23 +171,25 @@ for(i in 1:length(ind)){
   
 ## split length == 5
 ind <- which(bien_input$split_length==5)
-for(i in 1:length(ind)){
-  if(split_list[[ind[i]]][2]=="x"){
-    bien_input$genus[ind[i]] <- split_list[[ind[i]]][1]
-    bien_input$species_hybrid[ind[i]] <- split_list[[ind[i]]][2]
-    bien_input$species[ind[i]] <- split_list[[ind[i]]][3]
-    bien_input$taxon_rank[ind[i]] <- split_list[[ind[i]]][4]
-    bien_input$infra_name[ind[i]] <- split_list[[ind[i]]][5]
-  }
-  if(split_list[[ind[i]]][4]=="x"){
-    bien_input$genus[ind[i]] <- split_list[[ind[i]]][1]
-    bien_input$species_hybrid[ind[i]] <- split_list[[ind[i]]][4]
-    bien_input$species[ind[i]] <- split_list[[ind[i]]][2]
-    bien_input$taxon_rank[ind[i]] <- split_list[[ind[i]]][3]
-    bien_input$infra_name[ind[i]] <- split_list[[ind[i]]][5]
-  }
-  if(split_list[[ind[i]]][3]=="x"){  # this is aiming at Dieffenbachia nitidipetiolada x d. oerstedii
-    bien_input$usable[ind[i]] <- "no"
+if(length(ind!=0)){
+  for(i in 1:length(ind)){
+    if(split_list[[ind[i]]][2]=="x"){
+      bien_input$genus[ind[i]] <- split_list[[ind[i]]][1]
+      bien_input$species_hybrid[ind[i]] <- split_list[[ind[i]]][2]
+      bien_input$species[ind[i]] <- split_list[[ind[i]]][3]
+      bien_input$taxon_rank[ind[i]] <- split_list[[ind[i]]][4]
+      bien_input$infra_name[ind[i]] <- split_list[[ind[i]]][5]
+    }
+    if(split_list[[ind[i]]][4]=="x"){
+      bien_input$genus[ind[i]] <- split_list[[ind[i]]][1]
+      bien_input$species_hybrid[ind[i]] <- split_list[[ind[i]]][4]
+      bien_input$species[ind[i]] <- split_list[[ind[i]]][2]
+      bien_input$taxon_rank[ind[i]] <- split_list[[ind[i]]][3]
+      bien_input$infra_name[ind[i]] <- split_list[[ind[i]]][5]
+    }
+    if(split_list[[ind[i]]][3]=="x"){  # e.g. Dieffenbachia nitidipetiolada x d. oerstedii
+      bien_input$usable[ind[i]] <- "no"
+    }
   }
 }
 
@@ -208,7 +210,7 @@ saveRDS(bien_input, paste0(data_folder_path, bien_output_filename))
 }
 
 
-#### GBIF PROCESSING #############################################################################################
+#### GBIF PROCESSING #########################################################
 if(db=="GBIF"){
   
 # data check and preparation
@@ -244,18 +246,24 @@ gbif.df$authorship <- as.character(gbif.df$authorship)
 gbif.df$scientificName_org <- gbif.df$scientificName
 
 # remove special characters
-special_characters <- list('Š'='S', 'Ş'='S', 'š'='s', 'Ž'='Z', 'ž'='z', 'À'='A', 'Á'='A', 'Â'='A', 'Ã'='A', 'Ä'='A', 'Å'='A', 'Æ'='A', 'Ç'='C', 'Č'='C', 'È'='E', 'É'='E',
-                           'Ê'='E', 'Ë'='E', 'Ì'='I', 'Í'='I', 'Î'='I', 'Ï'='I', 'Ñ'='N', 'Ò'='O', 'Ó'='O', 'Ô'='O', 'Õ'='O', 'Ö'='O', 'Ø'='O', 'Ù'='U',
-                           'Ú'='U', 'Û'='U', 'Ü'='U', 'Ý'='Y', 'Þ'='B', 'ß'='Ss', 'à'='a', 'á'='a', 'â'='a', 'ã'='a', 'ä'='a', 'å'='a', 'æ'='a', 'ç'='c',
-                           'è'='e', 'é'='e', 'ê'='e', 'ë'='e', 'ì'='i', 'í'='i', 'î'='i', 'ï'='i', 'ð'='o', 'ñ'='n', 'ò'='o', 'ó'='o', 'ô'='o', 'õ'='o',
-                           'ö'='o', 'ø'='o', 'ù'='u', 'ú'='u', 'û'='u', 'ý'='y', 'ý'='y', 'þ'='b', 'ÿ'='y', 'Ř'='R', 'İ'='I', 'Ż'='Z', 'Ř'='R')
+special_characters <- list('Š'='S', 'Ş'='S', 'š'='s', 'Ž'='Z', 'ž'='z',
+'À'='A', 'Á'='A', 'Â'='A', 'Ã'='A', 'Ä'='A', 'Å'='A', 'Æ'='A', 'Ç'='C',
+'Č'='C', 'È'='E', 'É'='E', 'Ê'='E', 'Ë'='E', 'Ì'='I', 'Í'='I', 'Î'='I',
+'Ï'='I', 'Ñ'='N', 'Ò'='O', 'Ó'='O', 'Ô'='O', 'Õ'='O', 'Ö'='O', 'Ø'='O',
+'Ù'='U', 'Ú'='U', 'Û'='U', 'Ü'='U', 'Ý'='Y', 'Þ'='B', 'ß'='Ss', 'à'='a',
+'á'='a', 'â'='a', 'ã'='a', 'ä'='a', 'å'='a', 'æ'='a', 'ç'='c', 'è'='e',
+'é'='e', 'ê'='e', 'ë'='e', 'ì'='i', 'í'='i', 'î'='i', 'ï'='i', 'ð'='o',
+'ñ'='n', 'ò'='o', 'ó'='o', 'ô'='o', 'õ'='o', 'ö'='o', 'ø'='o', 'ù'='u',
+'ú'='u', 'û'='u', 'ý'='y', 'ý'='y', 'þ'='b', 'ÿ'='y', 'Ř'='R', 'İ'='I',
+'Ż'='Z', 'Ř'='R')
 
 gbif.df$scientificName <- chartr(paste(names(special_characters), collapse=''),
                                   paste(special_characters, collapse=''),
                                   gbif.df$scientificName)
 
-# GBIF does not hold Genus hybrids, so removing everything after the second capital should work. 
-# matching author patterns excludes in some cases start of genus name. this works, it`s just a bit slow (4mins)
+# GBIF does not hold Genus hybrids, removing everything after the second capital
+# should work. matching author patterns excludes in some cases start of genus
+# name. Works, it`s just a bit slow (4mins)
 
 for(i in 1:nrow(gbif.df)){
   str <- as.character(gbif.df[i,"scientificName"])
@@ -267,20 +275,27 @@ for(i in 1:nrow(gbif.df)){
 }
 
 # remove last brackets
-gbif.df[grepl("\\(", gbif.df$scientificName),"scientificName"] <- gsub("\\(", "", gbif.df[grepl("\\(", gbif.df$scientificName),"scientificName"])
+gbif.df[grepl("\\(", gbif.df$scientificName),"scientificName"] <- 
+  gsub("\\(", "", gbif.df[grepl("\\(", gbif.df$scientificName),"scientificName"])
 
 # remove hort. ex part
-gbif.df[grepl("hort. ex", gbif.df$scientificName),"scientificName"] <- gsub("hort. ex", "", gbif.df[grepl("hort. ex", gbif.df$scientificName),"scientificName"])
-gbif.df[grepl("hort.", gbif.df$scientificName),"scientificName"] <- gsub("hort.", "", gbif.df[grepl("hort.", gbif.df$scientificName),"scientificName"])
+gbif.df[grepl("hort. ex", gbif.df$scientificName),"scientificName"] <- 
+  gsub("hort. ex", "", gbif.df[grepl("hort. ex", gbif.df$scientificName),"scientificName"])
+gbif.df[grepl("hort.", gbif.df$scientificName),"scientificName"] <- 
+  gsub("hort.", "", gbif.df[grepl("hort.", gbif.df$scientificName),"scientificName"])
 
 # remove space at end
 gbif.df$scientificName <- str_trim(gbif.df$scientificName)
 
 # speciaal for the dutch and belgium authors ^^ 
 #speciaal <- c(" du", " de", " van", " la", " ex", " 't", " d'")
-gbif.df$scientificName <- gsub(" du$| de$| van$| la$| ex$| 't$| d'$| den$| v\\.$| f\\.$| t'$| van den$| van der$| von$| f\\. ex$| van de.*$", "", gbif.df$scientificName)
+gbif.df$scientificName <- gsub(" du$| de$| van$| la$| ex$| 't$| d'$| den$| v\\.$| 
+                               f\\.$| t'$| van den$| van der$| von$| f\\. ex$| van de.*$",
+                               "", gbif.df$scientificName)
 gbif.df$scientificName <- str_trim(gbif.df$scientificName)
-gbif.df$scientificName <- gsub(" du$| de$| van$| la$| ex$| 't$| d'$| den$| v\\.$| f\\.$| t'$| van den$| van der$| von$| f\\. ex$| van de.*$", "", gbif.df$scientificName)
+gbif.df$scientificName <- gsub(" du$| de$| van$| la$| ex$| 't$| d'$| den$| v\\.$| 
+                               f\\.$| t'$| van den$| van der$| von$| f\\. ex$| van de.*$",
+                               "", gbif.df$scientificName)
 # this is not a typo, need to run this twice because remove one pattern sometimes only reveals the next
 
 # remove some really special cases in GBIF
@@ -298,7 +313,7 @@ gbif.df$scientificName <- gsub("  ", " ", gbif.df$scientificName)
 gbif.df$split <- unlist(lapply(strsplit(gbif.df$scientificName, split = " "), length))
 
 
-# set up common format ###################################################################
+# set up common format ########################################################
 split_length <- unlist(lapply(strsplit(gbif.df$scientificName, split = " "), length))
 input <- data.frame(taxonID=gbif.df$taxonID,
                     taxon_name = gbif.df$scientificName,
@@ -346,7 +361,7 @@ input$genus <- as.character(input$genus)
 input$taxon_rank <- as.character(input$taxon_rank)
 
 
-# Vectorize + loop mix ###############################################################################
+# Vectorize + loop mix ########################################################
 
 ## split length == 1
 ind <- which(input$split_length==1)
@@ -462,5 +477,5 @@ saveRDS(input, paste0(data_folder_path, gbif_output_filename))
 
 
 
-#### END ######################################################################################
+#### END #####################################################################
 
