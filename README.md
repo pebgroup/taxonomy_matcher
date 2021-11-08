@@ -55,9 +55,10 @@ Complete scientific taxon names from BIEN, GBIF or NCBI were split into their co
 ### BIEN/GBIF processor
 Required data from the BIEN database include columns *scrubbed_taxon_name_no_author*, *scrubbed_family* and *scrubbed_scrubbed_author*. The processor script splits taxon names into their components, using space as a separator. According to the number of strings that were retrieved from a single taxon name, a certain set of regular expressions-conditions where applied the name, assigning each part of the name to its corresponding column in the common format data  frame. The set of conditions differs according to the number of strings retrieved from a taxon name. Conditions used where the position of an "x" (hybrid marker), the position of string starting with a capital letter, and combinations of both conditions. 
 
-For a list of all conditions with all possible taxon name cases, see the documentation _[here](/BIEN_taxonomy/BIEN_common_format_documentation.md)_
-
 GBIF processing includes an extra step that separates author names from scientific taxon names.
+
+_For a list of all conditions with all possible taxon name cases, see the documentation [here](/BIEN_taxonomy/BIEN_common_format_documentation.md)_
+
 
 
 ### NCBI processor  
